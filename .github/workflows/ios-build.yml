@@ -22,8 +22,11 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse --short HEAD
-          grep -n "BI-GBIS v1.1 build 9" BusIsland/ContentView.swift
-          # Fail fast if map view still references removed API
+          grep -n "BI-GBIS v1.1 build 10" BusIsland/ContentView.swift
+          if grep -nE '\?\.value\?\.' BusIsland -r --include='*.swift'; then
+            echo "ERROR: invalid optional chaining on non-optional .value"
+            exit 1
+          fi
           if grep -n "selectStation(" BusIsland/NearbyStationsMapView.swift; then
             echo "ERROR: NearbyStationsMapView still calls selectStation"
             exit 1
@@ -47,6 +50,10 @@ jobs:
       - name: Build (no code signing)
         run: |
           set -euo pipefail
+          set -o pipefail
+          LOG=build/xcodebuild-build.log
+          mkdir -p build
+          set +e
           xcodebuild \
             -project BusIsland.xcodeproj \
             -scheme BusIsland \
@@ -55,7 +62,18 @@ jobs:
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build 2>&1 | tee "$LOG"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            echo "===== COMPILE ERRORS (filtered) ====="
+            grep -E "error:|warning:.*error|❌|fatal error" "$LOG" | head -80 || true
+            echo "===== SWIFT ERROR LINES ====="
+            grep -E "\.swift:[0-9]+:[0-9]+: error:" "$LOG" | head -80 || true
+            echo "===== TAIL ====="
+            tail -n 80 "$LOG" || true
+            exit "$STATUS"
+          fi
 
       - name: Archive (no code signing)
         run: |
@@ -79,7 +97,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 9" || {
+          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 10" || {
             echo "ERROR: missing build marker in binary"
             echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
             exit 1
@@ -99,17 +117,17 @@ jobs:
           cp -R "$APP_PATH" build/Payload/
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build9-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-v1.1-build10-GBIS.ipa" Payload
           )
-          cp build/ipa/BusIsland-v1.1-build9-GBIS.ipa build/BusIsland-unsigned.ipa
+          cp build/ipa/BusIsland-v1.1-build10-GBIS.ipa build/BusIsland-unsigned.ipa
           ls -lh build/ipa/
-          shasum -a 256 build/ipa/BusIsland-v1.1-build9-GBIS.ipa
+          shasum -a 256 build/ipa/BusIsland-v1.1-build10-GBIS.ipa
 
       - name: Upload IPA artifact (versioned)
         uses: actions/upload-artifact@v4
         with:
-          name: BusIsland-v1.1-build9-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build9-GBIS.ipa
+          name: BusIsland-v1.1-build10-GBIS-ipa
+          path: build/ipa/BusIsland-v1.1-build10-GBIS.ipa
           if-no-files-found: error
 
       - name: Upload IPA artifact (legacy name)
@@ -125,3 +143,11 @@ jobs:
           name: BusIsland-xcarchive
           path: build/BusIsland.xcarchive
           if-no-files-found: error
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild-build.log
+          if-no-files-found: ignore

@@ -221,7 +221,7 @@ struct GbisRouteStationDTO: Decodable {
             stationId: stationId,
             stationName: stationName,
             stationSeq: stationSeq,
-            mobileNo: mobileNo?.value?.trimmingCharacters(in: .whitespacesAndNewlines),
+            mobileNo: mobileNo?.value.trimmingCharacters(in: .whitespacesAndNewlines),
             turnYn: turnYn,
             longitude: Double(x?.value ?? ""),
             latitude: Double(y?.value ?? "")
