@@ -11,14 +11,14 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BusIsland v1.1 · GBIS")
-                            .font(.headline)
-                        Text("경기버스 · 정류장→노선→하차 · GPS/지도")
+                        Text("BI-GBIS v1.1 build 4")
+                            .font(.title2.bold())
+                        Text("경기버스 하차알림 · 이 문구가 보이면 새 빌드")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                        Text("홈 아이콘 이름도 BI-GBIS 여야 합니다")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("빌드 \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 4)
 
