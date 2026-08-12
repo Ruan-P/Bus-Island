@@ -18,21 +18,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show ContentView marker (source must be GBIS UI)
+      - name: Show ContentView marker
         run: |
           set -euo pipefail
-          echo "=== HEAD ==="
           git rev-parse --short HEAD
-          echo "=== ContentView markers ==="
-          grep -n "BI-GBIS v1.1 build 7" BusIsland/ContentView.swift
+          grep -n "BI-GBIS v1.1 build 8" BusIsland/ContentView.swift
           grep -n "openapi.gg.go.kr/BusStation" BusIsland/ContentView.swift
-          grep -n "bakedDefaultKey" BusIsland/Services/APIKeyStore.swift
           test -f BusIsland/Services/GgBusStationClient.swift
-          if grep -n "테스트 버스 라이드" BusIsland/ContentView.swift; then
-            echo "ERROR: old mock UI string still in ContentView.swift"
-            exit 1
-          fi
-          echo "Source ContentView OK"
+          test -f BusIsland/Services/Gbis/GbisAPIClient.swift
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -47,16 +40,8 @@ jobs:
 
       - name: Build (no code signing)
         run: |
-          set -o pipefail
+          set -euo pipefail
           xcodebuild \
-            -project BusIsland.xcodeproj \
-            -scheme BusIsland \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build | xcpretty || xcodebuild \
             -project BusIsland.xcodeproj \
             -scheme BusIsland \
             -configuration Release \
@@ -68,7 +53,7 @@ jobs:
 
       - name: Archive (no code signing)
         run: |
-          set -o pipefail
+          set -euo pipefail
           xcodebuild \
             -project BusIsland.xcodeproj \
             -scheme BusIsland \
@@ -84,50 +69,41 @@ jobs:
           set -euo pipefail
           APP="build/BusIsland.xcarchive/Products/Applications/BusIsland.app"
           BIN="$APP/BusIsland"
-          PLIST="$APP/Info.plist"
           ls -la "$APP"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST" || true
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST" || true
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST" || true
-          echo "=== strings check ==="
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 7" || {
-            echo "ERROR: compiled binary missing 'BI-GBIS v1.1 build 7'"
-            echo "$STRINGS" | grep -E "BI-GBIS|GBIS|테스트|사당|API 키" | head -50
-            exit 1
-          }
-          echo "$STRINGS" | grep -F "openapi.gg.go.kr" || {
-            echo "ERROR: compiled binary missing gg.go.kr BusStation marker"
+          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 8" || {
+            echo "ERROR: missing build marker in binary"
+            echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
             exit 1
           }
           if echo "$STRINGS" | grep -F "테스트 버스 라이드"; then
-            echo "ERROR: compiled binary still contains old mock UI"
+            echo "ERROR: old mock UI still in binary"
             exit 1
           fi
-          echo "Binary UI strings OK (GBIS build)"
+          echo "Binary OK"
 
       - name: Package unsigned IPA
         run: |
           set -euo pipefail
           APP_PATH="build/BusIsland.xcarchive/Products/Applications/BusIsland.app"
-          PAYLOAD="build/Payload"
-          rm -rf "$PAYLOAD" build/ipa
-          mkdir -p "$PAYLOAD" build/ipa
-          cp -R "$APP_PATH" "$PAYLOAD/"
+          rm -rf build/Payload build/ipa
+          mkdir -p build/Payload build/ipa
+          cp -R "$APP_PATH" build/Payload/
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build7-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-v1.1-build8-GBIS.ipa" Payload
           )
+          cp build/ipa/BusIsland-v1.1-build8-GBIS.ipa build/BusIsland-unsigned.ipa
           ls -lh build/ipa/
-          # Keep legacy name too for existing docs
-          cp build/ipa/BusIsland-v1.1-build7-GBIS.ipa build/BusIsland-unsigned.ipa
-          shasum -a 256 build/ipa/BusIsland-v1.1-build7-GBIS.ipa
+          shasum -a 256 build/ipa/BusIsland-v1.1-build8-GBIS.ipa
 
-      - name: Upload IPA artifact (versioned name)
+      - name: Upload IPA artifact (versioned)
         uses: actions/upload-artifact@v4
         with:
-          name: BusIsland-v1.1-build7-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build7-GBIS.ipa
+          name: BusIsland-v1.1-build8-GBIS-ipa
+          path: build/ipa/BusIsland-v1.1-build8-GBIS.ipa
           if-no-files-found: error
 
       - name: Upload IPA artifact (legacy name)

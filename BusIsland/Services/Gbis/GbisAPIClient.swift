@@ -1,7 +1,6 @@
-import CoreLocation
 import Foundation
 
-public enum GbisAPIError: Error, LocalizedError, Sendable {
+enum GbisAPIError: Error, LocalizedError, Sendable {
     case missingServiceKey
     case invalidURL
     case httpStatus(Int, String?)
@@ -10,7 +9,7 @@ public enum GbisAPIError: Error, LocalizedError, Sendable {
     case emptyResult
     case stationServiceUnavailable
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .missingServiceKey:
             return "공공데이터포털 인증키가 없습니다."
@@ -18,7 +17,8 @@ public enum GbisAPIError: Error, LocalizedError, Sendable {
             return "API 요청 URL을 만들 수 없습니다."
         case .httpStatus(let code, let body):
             if let body, !body.isEmpty {
-                return "GBIS HTTP \(code): \(body.prefix(160))"
+                let snippet = body.count > 160 ? String(body.prefix(160)) : body
+                return "GBIS HTTP \(code): \(snippet)"
             }
             return "GBIS HTTP 오류 (\(code))"
         case .apiMessage(let message):
@@ -28,35 +28,29 @@ public enum GbisAPIError: Error, LocalizedError, Sendable {
         case .emptyResult:
             return "검색 결과가 없습니다."
         case .stationServiceUnavailable:
-            return "이 키에는 정류소 조회 API 권한이 없습니다. 노선 번호로 검색하세요."
+            return "정류소 API 권한이 없습니다. 노선 번호로 검색하세요."
         }
     }
 }
 
-/// GBIS realtime APIs (data.go.kr) + 경기데이터드림 station catalog (openapi.gg.go.kr).
-/// - busrouteservice/v2, busarrivalservice/v2 (data.go.kr key)
-/// - BusStation nearby/search (gg.go.kr key) — STATION_ID == GBIS stationId
-public actor GbisAPIClient {
-    public static let shared = GbisAPIClient()
+/// GBIS realtime (data.go.kr) + 경기데이터드림 stations (openapi.gg.go.kr).
+actor GbisAPIClient {
+    static let shared = GbisAPIClient()
 
     private let baseURL = URL(string: "https://apis.data.go.kr/6410000")!
     private let session: URLSession
     private let keyStore: APIKeyStore
     private let stationCatalog: GgBusStationClient
 
-    public init(
-        session: URLSession = .shared,
-        keyStore: APIKeyStore = .shared,
-        stationCatalog: GgBusStationClient = .shared
-    ) {
+    init(session: URLSession = .shared, keyStore: APIKeyStore? = nil) {
         self.session = session
-        self.keyStore = keyStore
-        self.stationCatalog = stationCatalog
+        self.keyStore = keyStore ?? APIKeyStore.shared
+        self.stationCatalog = GgBusStationClient.shared
     }
 
-    // MARK: - Public
+    // MARK: - Routes / stations on route
 
-    public func searchRoutes(keyword: String) async throws -> [GbisRoute] {
+    func searchRoutes(keyword: String) async throws -> [GbisRoute] {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
         let body: GbisViaRouteListBody = try await get(
@@ -66,7 +60,7 @@ public actor GbisAPIClient {
         return body.busRouteList?.items.compactMap { $0.toDomain() } ?? []
     }
 
-    public func stations(on routeId: String) async throws -> [GbisRouteStation] {
+    func stations(on routeId: String) async throws -> [GbisRouteStation] {
         let body: GbisRouteStationListBody = try await get(
             path: "busrouteservice/v2/getBusRouteStationListv2",
             query: ["routeId": routeId]
@@ -75,18 +69,18 @@ public actor GbisAPIClient {
         return list.sorted { $0.stationSeq < $1.stationSeq }
     }
 
-    /// Nearby stations via 경기데이터드림 BusStation catalog (WGS84), filtered by GPS radius.
-    public func nearbyStations(longitude: Double, latitude: Double) async throws -> [GbisStation] {
+    // MARK: - Nearby / name (gg.go.kr)
+
+    func nearbyStations(longitude: Double, latitude: Double) async throws -> [GbisStation] {
         try await stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
     }
 
-    /// Station name search via 경기데이터드림 BusStation catalog.
-    public func searchStationsByName(keyword: String) async throws -> [GbisStation] {
+    func searchStationsByName(keyword: String) async throws -> [GbisStation] {
         try await stationCatalog.searchStations(keyword: keyword)
     }
 
-    /// Routes serving a station — derived from arrival list (no station-via-route API needed).
-    public func routes(at stationId: String) async throws -> [GbisRoute] {
+    /// Routes currently arriving at a station (arrival list).
+    func routes(at stationId: String) async throws -> [GbisRoute] {
         let body: GbisArrivalItemBody = try await get(
             path: "busarrivalservice/v2/getBusArrivalListv2",
             query: ["stationId": stationId]
@@ -108,14 +102,12 @@ public actor GbisAPIClient {
                 )
             )
         }
-        if routes.isEmpty {
-            throw GbisAPIError.emptyResult
-        }
+        if routes.isEmpty { throw GbisAPIError.emptyResult }
         return routes
     }
 
-    public func remainingStops(routeId: String, stationId: String, destinationSeq: Int) async throws -> Int {
-        // Prefer arrival item (destination station + route).
+    func remainingStops(routeId: String, stationId: String, destinationSeq: Int) async throws -> Int {
+        _ = destinationSeq
         do {
             let body: GbisArrivalItemBody = try await get(
                 path: "busarrivalservice/v2/getBusArrivalItemv2",
@@ -134,7 +126,6 @@ public actor GbisAPIClient {
             // fall through
         }
 
-        // Fallback: arrival list filtered by routeId
         let listBody: GbisArrivalItemBody = try await get(
             path: "busarrivalservice/v2/getBusArrivalListv2",
             query: ["stationId": stationId]
@@ -143,21 +134,16 @@ public actor GbisAPIClient {
            let stops = match.remainingStops {
             return max(0, stops)
         }
-
-        // Last resort: estimate from boarding seq if we only know destinationSeq (not ideal)
-        _ = destinationSeq
         throw GbisAPIError.emptyResult
     }
 
-    // MARK: - HTTP
+    // MARK: - HTTP (data.go.kr)
 
     private func get<Body: Decodable>(path: String, query: [String: String]) async throws -> Body {
         guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
             throw GbisAPIError.missingServiceKey
         }
 
-        // data.go.kr expects Encoding key in query. If we have Decoding key, encode once.
-        // If key already contains %, treat as Encoding key and append as-is.
         let keyQueryValue: String
         if serviceKey.contains("%") {
             keyQueryValue = serviceKey
@@ -191,11 +177,7 @@ public actor GbisAPIClient {
 
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            let snippet = String(data: data, encoding: .utf8)
-            if http.statusCode == 403, path.contains("busstationservice") {
-                throw GbisAPIError.stationServiceUnavailable
-            }
-            throw GbisAPIError.httpStatus(http.statusCode, snippet)
+            throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
         }
 
         if let text = String(data: data, encoding: .utf8),

@@ -2,20 +2,20 @@ import Foundation
 
 /// Tracks a selected GBIS ride and produces `BusRideSnapshot` updates for Live Activity.
 @MainActor
-public final class GbisRideTracker {
+final class GbisRideTracker {
     private let client: GbisAPIClient
     private var pollTask: Task<Void, Never>?
 
-    public private(set) var selection: GbisRideSelection?
-    public private(set) var latestSnapshot: BusRideSnapshot?
+    private(set) var selection: GbisRideSelection?
+    private(set) var latestSnapshot: BusRideSnapshot?
 
-    public init(client: GbisAPIClient = .shared) {
-        self.client = client
+    init(client: GbisAPIClient? = nil) {
+        self.client = client ?? GbisAPIClient.shared
     }
 
-    public var isTracking: Bool { pollTask != nil }
+    var isTracking: Bool { pollTask != nil }
 
-    public func makeInitialSnapshot(from selection: GbisRideSelection) async throws -> BusRideSnapshot {
+    func makeInitialSnapshot(from selection: GbisRideSelection) async throws -> BusRideSnapshot {
         self.selection = selection
         let remaining = try await client.remainingStops(
             routeId: selection.route.routeId,
@@ -32,7 +32,7 @@ public final class GbisRideTracker {
         return snapshot
     }
 
-    public func refreshSnapshot() async throws -> BusRideSnapshot {
+    func refreshSnapshot() async throws -> BusRideSnapshot {
         guard let selection else {
             throw GbisAPIError.emptyResult
         }
@@ -51,7 +51,7 @@ public final class GbisRideTracker {
         return snapshot
     }
 
-    public func startPolling(
+    func startPolling(
         intervalSeconds: TimeInterval = 20,
         onUpdate: @escaping @MainActor (BusRideSnapshot) -> Void,
         onError: @escaping @MainActor (Error) -> Void
@@ -74,12 +74,12 @@ public final class GbisRideTracker {
         }
     }
 
-    public func stopPolling() {
+    func stopPolling() {
         pollTask?.cancel()
         pollTask = nil
     }
 
-    public func reset() {
+    func reset() {
         stopPolling()
         selection = nil
         latestSnapshot = nil

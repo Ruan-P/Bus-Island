@@ -4,49 +4,39 @@ import Foundation
 /// 경기데이터드림 OpenAPI — 버스정류소 현황
 /// https://openapi.gg.go.kr/BusStation
 /// STATION_ID matches GBIS stationId used by busarrivalservice/v2.
-public actor GgBusStationClient {
-    public static let shared = GgBusStationClient()
-
-    public static let bakedKey = "e770793d363246e0b7d4fe05be175ff6"
+actor GgBusStationClient {
+    static let shared = GgBusStationClient()
+    static let bakedKey = "e770793d363246e0b7d4fe05be175ff6"
 
     private let baseURL = URL(string: "https://openapi.gg.go.kr/BusStation")!
     private let session: URLSession
     private let apiKey: String
 
-    /// Cache stations for nearby SIGUN codes (Anyang + Uiwang + Gunpo).
     private var cache: [GbisStation] = []
     private var cacheLoadedAt: Date?
 
-    private let nearbySigunCodes = [
-        "41170", // 안양시
-        "41430", // 의왕시
-        "41410", // 군포시
-    ]
+    /// 안양 / 의왕 / 군포
+    private let nearbySigunCodes = ["41170", "41430", "41410"]
 
-    public init(session: URLSession = .shared, apiKey: String = GgBusStationClient.bakedKey) {
+    init(session: URLSession = .shared, apiKey: String = GgBusStationClient.bakedKey) {
         self.session = session
         self.apiKey = apiKey
     }
 
-    // MARK: - Public
-
-    public func searchStations(keyword: String) async throws -> [GbisStation] {
+    func searchStations(keyword: String) async throws -> [GbisStation] {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        // API has no free-text filter that works reliably; load local cache and filter.
         let all = try await loadNearbyRegionStations()
-        let lower = trimmed.lowercased()
-        return all.filter {
-            $0.stationName.localizedCaseInsensitiveContains(trimmed)
-                || ($0.mobileNo?.contains(trimmed) ?? false)
-                || ($0.regionName?.localizedCaseInsensitiveContains(lower) ?? false)
+        let filtered = all.filter { station in
+            station.stationName.localizedCaseInsensitiveContains(trimmed)
+                || (station.mobileNo?.contains(trimmed) ?? false)
+                || (station.regionName?.localizedCaseInsensitiveContains(trimmed) ?? false)
         }
-        .prefix(50)
-        .map { $0 }
+        return Array(filtered.prefix(50))
     }
 
-    public func nearbyStations(
+    func nearbyStations(
         longitude: Double,
         latitude: Double,
         radiusMeters: Int = 800
@@ -55,14 +45,10 @@ public actor GgBusStationClient {
         let all = try await loadNearbyRegionStations()
 
         var result: [GbisStation] = []
-        result.reserveCapacity(40)
-
         for station in all {
-            guard let coord = station.coordinate else { continue }
+            guard let lat = station.latitude, let lon = station.longitude else { continue }
             let meters = Int(
-                user.distance(
-                    from: CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-                )
+                user.distance(from: CLLocation(latitude: lat, longitude: lon))
             )
             guard meters <= radiusMeters else { continue }
             result.append(
@@ -71,24 +57,26 @@ public actor GgBusStationClient {
                     stationName: station.stationName,
                     mobileNo: station.mobileNo,
                     regionName: station.regionName,
-                    longitude: station.longitude,
-                    latitude: station.latitude,
+                    longitude: lon,
+                    latitude: lat,
                     distanceMeters: meters
                 )
             )
         }
 
-        result.sort { ($0.distanceMeters ?? .max) < ($1.distanceMeters ?? .max) }
+        result.sort { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
         if result.isEmpty {
             throw GbisAPIError.emptyResult
         }
         return Array(result.prefix(40))
     }
 
-    // MARK: - Cache / fetch
+    // MARK: - Private
 
     private func loadNearbyRegionStations() async throws -> [GbisStation] {
-        if let cacheLoadedAt, Date().timeIntervalSince(cacheLoadedAt) < 3600, !cache.isEmpty {
+        if let cacheLoadedAt,
+           Date().timeIntervalSince(cacheLoadedAt) < 3600,
+           !cache.isEmpty {
             return cache
         }
 
@@ -110,26 +98,25 @@ public actor GgBusStationClient {
         return list
     }
 
-    private func fetchAllPages(sigunCode: String) async throws -> [GgBusStationRow] {
+    private func fetchAllPages(sigunCode: String) async throws -> [GgStationRow] {
         var page = 1
         let pageSize = 1000
-        var all: [GgBusStationRow] = []
+        var all: [GgStationRow] = []
         var total = Int.max
 
         while all.count < total {
-            let envelope = try await fetchPage(sigunCode: sigunCode, page: page, size: pageSize)
-            total = envelope.totalCount
-            let rows = envelope.rows
-            if rows.isEmpty { break }
-            all.append(contentsOf: rows)
-            if rows.count < pageSize { break }
+            let pageResult = try await fetchPage(sigunCode: sigunCode, page: page, size: pageSize)
+            total = pageResult.total
+            if pageResult.rows.isEmpty { break }
+            all.append(contentsOf: pageResult.rows)
+            if pageResult.rows.count < pageSize { break }
             page += 1
             if page > 20 { break }
         }
         return all
     }
 
-    private func fetchPage(sigunCode: String, page: Int, size: Int) async throws -> GgBusStationEnvelope {
+    private func fetchPage(sigunCode: String, page: Int, size: Int) async throws -> (total: Int, rows: [GgStationRow]) {
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
         components.queryItems = [
             URLQueryItem(name: "KEY", value: apiKey),
@@ -149,88 +136,78 @@ public actor GgBusStationClient {
 
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            let body = String(data: data, encoding: .utf8)
-            throw GbisAPIError.httpStatus(http.statusCode, body)
+            throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
         }
 
-        do {
-            return try JSONDecoder().decode(GgBusStationEnvelope.self, from: data)
-        } catch {
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let blocks = root["BusStation"] as? [Any]
+        else {
             throw GbisAPIError.decodingFailed
         }
-    }
-}
 
-// MARK: - DTOs
+        var total = 0
+        var rows: [GgStationRow] = []
 
-private struct GgBusStationEnvelope: Decodable {
-    let BusStation: [GgBusStationBlock]?
-
-    var totalCount: Int {
-        for block in BusStation ?? [] {
-            if let heads = block.head {
-                for head in heads {
-                    if let count = head.list_total_count {
-                        return count
+        for block in blocks {
+            guard let dict = block as? [String: Any] else { continue }
+            if let head = dict["head"] as? [[String: Any]] {
+                for item in head {
+                    if let count = item["list_total_count"] as? Int {
+                        total = count
+                    } else if let count = item["list_total_count"] as? NSNumber {
+                        total = count.intValue
                     }
                 }
             }
-        }
-        return 0
-    }
-
-    var rows: [GgBusStationRow] {
-        for block in BusStation ?? [] {
-            if let rows = block.row, !rows.isEmpty {
-                return rows
+            if let rowArray = dict["row"] as? [[String: Any]] {
+                for raw in rowArray {
+                    rows.append(GgStationRow(raw: raw))
+                }
             }
         }
-        return []
+
+        return (total, rows)
     }
 }
 
-private struct GgBusStationBlock: Decodable {
-    let head: [GgBusStationHead]?
-    let row: [GgBusStationRow]?
-}
+// Manual JSON row — avoids Codable edge cases with mixed number/string fields.
+private struct GgStationRow {
+    let stationId: String
+    let stationName: String
+    let mobileNo: String?
+    let regionName: String?
+    let longitude: Double?
+    let latitude: Double?
 
-private struct GgBusStationHead: Decodable {
-    let list_total_count: Int?
-    let RESULT: GgBusStationResult?
-    let api_version: String?
-}
+    init(raw: [String: Any]) {
+        func str(_ key: String) -> String? {
+            if let s = raw[key] as? String { return s }
+            if let n = raw[key] as? NSNumber { return n.stringValue }
+            return nil
+        }
+        func dbl(_ key: String) -> Double? {
+            if let n = raw[key] as? NSNumber { return n.doubleValue }
+            if let s = raw[key] as? String { return Double(s) }
+            return nil
+        }
 
-private struct GgBusStationResult: Decodable {
-    let CODE: String?
-    let MESSAGE: String?
-}
-
-private struct GgBusStationRow: Decodable {
-    let SIGUN_NM: String?
-    let SIGUN_CD: String?
-    let STATION_NM_INFO: String?
-    let STATION_ID: LosslessStringCodable?
-    let STATION_MANAGE_NO: LosslessStringCodable?
-    let STATION_DIV_NM: String?
-    let JURISD_INST_NM: String?
-    let LOCPLC_LOC: String?
-    let WGS84_LOGT: LosslessStringCodable?
-    let WGS84_LAT: LosslessStringCodable?
+        stationId = str("STATION_ID") ?? ""
+        stationName = (str("STATION_NM_INFO") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        mobileNo = str("STATION_MANAGE_NO")
+        regionName = str("SIGUN_NM")
+        longitude = dbl("WGS84_LOGT")
+        latitude = dbl("WGS84_LAT")
+    }
 
     func toDomain() -> GbisStation? {
-        guard let id = STATION_ID?.value, !id.isEmpty,
-              let name = STATION_NM_INFO?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty
-        else { return nil }
-
-        let lon = Double(WGS84_LOGT?.value ?? "")
-        let lat = Double(WGS84_LAT?.value ?? "")
+        guard !stationId.isEmpty, !stationName.isEmpty else { return nil }
         return GbisStation(
-            stationId: id,
-            stationName: name,
-            mobileNo: STATION_MANAGE_NO?.value,
-            regionName: SIGUN_NM,
-            longitude: lon,
-            latitude: lat,
+            stationId: stationId,
+            stationName: stationName,
+            mobileNo: mobileNo,
+            regionName: regionName,
+            longitude: longitude,
+            latitude: latitude,
             distanceMeters: nil
         )
     }
