@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "D10000000000000000000001"
+               BlueprintIdentifier = "AF0000000000000000000001"
                BuildableName = "BusIsland.app"
                BlueprintName = "BusIsland"
                ReferencedContainer = "container:BusIsland.xcodeproj">
@@ -44,7 +44,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D10000000000000000000001"
+            BlueprintIdentifier = "AF0000000000000000000001"
             BuildableName = "BusIsland.app"
             BlueprintName = "BusIsland"
             ReferencedContainer = "container:BusIsland.xcodeproj">
@@ -61,7 +61,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "D10000000000000000000001"
+            BlueprintIdentifier = "AF0000000000000000000001"
             BuildableName = "BusIsland.app"
             BlueprintName = "BusIsland"
             ReferencedContainer = "container:BusIsland.xcodeproj">

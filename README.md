@@ -1,70 +1,95 @@
 # BusIsland
 
-서울 버스 하차 알림을 iPhone Dynamic Island + Live Activity로 보여주는 SwiftUI 프로토타입 앱입니다. 현재는 프로토타입 단계로 서울 버스 API 연동 없이 Mock 데이터로 Live Activity를 시작/업데이트/종료합니다.
+경기버스(안양·의왕 등) 하차 알림을 iPhone Dynamic Island + Live Activity로 보여주는 SwiftUI 앱입니다.
+
+**흐름:** (GPS 근처 또는 이름 검색) 정류장 선택 → 경유 노선 선택 → 하차 정류장 선택 → Live Activity 시작 → GBIS 폴링으로 남은 정거장 갱신
 
 ## 프로젝트 구조
 
 ```
 BusIsland/
-├── BusIsland/                  # 메인 앱 (SwiftUI)
-│   ├── BusIslandApp.swift      # 앱 진입점
-│   ├── ContentView.swift       # 데모 UI (시작/업데이트/종료 버튼)
-│   ├── Services/               # 서비스 계층
-│   │   ├── BusRideProviding.swift    # 라이드 상태 공급자 프로토콜 (API 교체 경계)
-│   │   ├── MockBusRideService.swift  # Mock 구현
-│   │   └── LiveActivityService.swift # ActivityKit 시작/업데이트/종료
-│   └── Assets.xcassets/
-├── BusIslandWidget/            # Widget Extension
-│   ├── BusIslandWidgetBundle.swift
-│   └── BusRideLiveActivity.swift    # Live Activity UI (Compact/Expanded/Minimal/Lock Screen)
-├── Shared/Models/              # 앱 + 위젯 공유 모델
-│   ├── BusRideActivityAttributes.swift
-│   └── BusRideSnapshot.swift
+├── BusIsland/                       # 메인 앱
+│   ├── ContentView.swift            # 정류장→노선→하차 UI + ViewModel
+│   ├── NearbyStationsMapView.swift  # GPS + MapKit 주변 정류장
+│   ├── SettingsView.swift           # 공공데이터포털 serviceKey 입력
+│   └── Services/
+│       ├── APIKeyStore.swift        # Keychain 키 저장
+│       ├── LocationService.swift    # CoreLocation
+│       ├── LiveActivityService.swift
+│       ├── MockBusRideService.swift # 프로토타입용 Mock (유지)
+│       └── Gbis/
+│           ├── GbisAPIClient.swift  # GBIS OpenAPI 클라이언트
+│           ├── GbisModels.swift
+│           └── GbisRideTracker.swift
+├── BusIslandWidget/                 # Live Activity UI
+├── Shared/Models/                   # 앱+위젯 공유 ContentState
 └── BusIsland.xcodeproj
 ```
 
-## 데모 데이터
+## 공공데이터 API (GBIS)
 
-- 노선: 3412
-- 목적지: 사당역
-- 남은 정거장: 4
+data.go.kr에서 아래 **경기도** API를 활용신청하고, 발급 **Decoding 키**를 앱 설정에 저장합니다.
+
+| 데이터셋 | 용도 |
+|---|---|
+| 경기도 버스정류소 조회 | 정류장 이름 검색, 정류장 경유 노선 |
+| 경기도 버스노선 조회 | 노선 경유 정류장 순서 |
+| 경기도 버스도착정보 조회 | 남은 정거장 수 (`locationNo1`) |
+| 경기도 버스위치정보 조회 | 도착 API 실패 시 위치 기반 폴백 |
+
+- Base: `https://apis.data.go.kr/6410000/...` (HTTPS)
+- 인앱 키 저장: Keychain (`APIKeyStore`)
+- 서버 없음 (serverless). 앱이 포그라운드/활성 중 20초 간격 폴링
+- 개발 계정 트래픽: 서비스당 일 1,000회 수준 — 폴링 간격 유지 권장
+
+### 사용자 플로우
+
+1. 설정 → serviceKey 저장  
+2. **내 주변 정류장 (지도)** 또는 이름 검색으로 탑승 정류장 선택  
+3. 정류장 선택 → **그 정류장을 지나는 노선 목록** 표시  
+4. 노선 선택 → 하차 정류장 선택 (탑승 정류장 이후 순번)  
+5. Live Activity 시작 → Dynamic Island에 노선/목적지/남은 정거장  
+
+### 지도
+
+- **Apple MapKit** 사용 (외부 SDK 없음, Windows 소스 + CI 빌드에 적합)
+- Kakao Maps SDK는 CocoaPods/네이티브 바이너리 의존이 커서 현재 범위에서 제외
+- 정류장 좌표는 GBIS `getBusStationAroundList` (x=경도, y=위도, WGS84)  
+
 
 ## Windows 개발 워크플로우
 
-로컬 Windows에서는 Xcode를 실행할 수 없습니다. 소스는 Windows에서 편집하고 빌드는 GitHub Actions의 macOS runner에서 수행합니다.
+로컬 Windows에서는 Xcode를 실행할 수 없습니다. 소스는 Windows에서 편집하고 빌드는 GitHub Actions macOS runner에서 수행합니다.
 
-1. 코드 수정
-2. `git push`
-3. GitHub Actions의 **iOS Build** 워크플로우가 macOS runner에서 빌드
-4. 빌드 산출물 아티팩트 다운로드
-   - `BusIsland-unsigned.ipa`: 서명 없는 IPA
-   - `BusIsland-xcarchive`: 전체 아카이브
-5. IPA를 기존 sideloader로 iPhone 설치 후 테스트
+1. 코드 수정  
+2. `git push`  
+3. GitHub Actions **iOS Build**  
+4. artifact 다운로드 (`BusIsland-unsigned.ipa`)  
+5. sideloader로 iPhone 설치 후 테스트  
 
 ## 빌드 설정
 
-- 최소 배포 타깃: iOS 17.0 (Live Activity는 iOS 16.1+ 필요, ActivityContent는 16.2+)
-- Swift 6.0 언어 모드
-- Xcode 16.4 (CI 고정), macOS runner: `macos-15`
-- 빌드/아카이브는 `CODE_SIGNING_ALLOWED=NO`로 서명 없이 수행
-
-`NSSupportsLiveActivities`는 앱 `Info.plist`에 포함되어 있어 설정에서 Live Activities를 허용하면 Dynamic Island/잠금 화면에 표시됩니다. 잦은 업데이트(Frequent Updates)는 아직 사용하지 않으며, 필요하면 `NSSupportsLiveActivitiesFrequentUpdates`를 추가해야 합니다.
+- 최소 배포 타깃: iOS 17.0  
+- Swift 6.0  
+- Xcode 16.4 (CI), runner: `macos-15`  
+- `CODE_SIGNING_ALLOWED=NO` unsigned 빌드  
+- `NSSupportsLiveActivities` = true  
 
 ## Apple 서명과 IPA 설치
 
-GitHub Actions는 **서명 없는** IPA를 생성합니다. 서명 없이 iPhone에 설치하려면 sideloader(예: AltStore, Sideloadly, SideStore 등)가 설치 시 자신의 Apple ID로 재서명합니다.
+GitHub Actions는 **서명 없는** IPA를 만듭니다. sideloader가 설치 시 Apple ID로 재서명합니다.
 
-App Store 배포를 원하면 다음이 필요하며 현재 구현 범위가 아닙니다:
+App Store 배포·인증서·프로파일은 현재 범위 밖입니다.
 
-- Apple Developer Program 멤버십
-- App Store Connect 앱 등록
-- 배포 인증서 + Provisioning Profile
-- `DEVELOPMENT_TEAM` 설정과 코드 서명 활성화
+## 한계 (서버리스)
 
-이 부분을 CI에 넣을 때는 시크릿(인증서, 프로파일) 관리가 필요하므로 현재 단계에서는 README로만 안내합니다.
+- 앱이 완전히 종료되면 Live Activity 숫자 자동 갱신이 멈출 수 있음  
+- 백그라운드 지속 갱신/푸시 업데이트는 추후 APNs 서버 필요  
+- Mock 버튼 데모는 유지되어 있으나 메인 UI는 GBIS 실데이터 흐름  
 
 ## 다음 단계
 
-- 서울 버스 공공데이터 API 연동 (`BusRideProviding` 구현 교체)
-- 위치 기반 하차 알림
-- Live Activity 갱신 전략 (주기적 업데이트, push token 기반)
+- 위치 기반 근처 정류장  
+- 탑승 차량(번호판) 지정 추적  
+- Live Activity push token 갱신  
+- 백그라운드 위치/BGTask 폴링  

@@ -21,6 +21,13 @@
 		AA0000000000000000000012 /* BusRideActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* BusRideActivityAttributes.swift */; };
 		AA0000000000000000000013 /* BusRideSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000011 /* BusRideSnapshot.swift */; };
 		AA0000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000009 /* Assets.xcassets */; };
+		AA0000000000000000000015 /* APIKeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000016 /* APIKeyStore.swift */; };
+		AA0000000000000000000016 /* GbisModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000017 /* GbisModels.swift */; };
+		AA0000000000000000000017 /* GbisAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000018 /* GbisAPIClient.swift */; };
+		AA0000000000000000000018 /* GbisRideTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000019 /* GbisRideTracker.swift */; };
+		AA0000000000000000000019 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000020 /* SettingsView.swift */; };
+		AA0000000000000000000020 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000021 /* LocationService.swift */; };
+		AA0000000000000000000021 /* NearbyStationsMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000022 /* NearbyStationsMapView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +70,13 @@
 		AB0000000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB0000000000000000000014 /* BusIsland.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BusIsland.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB0000000000000000000015 /* BusIslandWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BusIslandWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000000000000000000016 /* APIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyStore.swift; sourceTree = "<group>"; };
+		AB0000000000000000000017 /* GbisModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GbisModels.swift; sourceTree = "<group>"; };
+		AB0000000000000000000018 /* GbisAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GbisAPIClient.swift; sourceTree = "<group>"; };
+		AB0000000000000000000019 /* GbisRideTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GbisRideTracker.swift; sourceTree = "<group>"; };
+		AB0000000000000000000020 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000021 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		AB0000000000000000000022 /* NearbyStationsMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyStationsMapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +112,8 @@
 			children = (
 				AB0000000000000000000001 /* BusIslandApp.swift */,
 				AB0000000000000000000002 /* ContentView.swift */,
+				AB0000000000000000000020 /* SettingsView.swift */,
+				AB0000000000000000000022 /* NearbyStationsMapView.swift */,
 				B10000000000000000000006 /* Services */,
 				AB0000000000000000000006 /* Assets.xcassets */,
 				AB0000000000000000000012 /* Info.plist */,
@@ -139,8 +155,21 @@
 				AB0000000000000000000003 /* BusRideProviding.swift */,
 				AB0000000000000000000004 /* MockBusRideService.swift */,
 				AB0000000000000000000005 /* LiveActivityService.swift */,
+				AB0000000000000000000016 /* APIKeyStore.swift */,
+				AB0000000000000000000021 /* LocationService.swift */,
+				B10000000000000000000008 /* Gbis */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		B10000000000000000000008 /* Gbis */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000017 /* GbisModels.swift */,
+				AB0000000000000000000018 /* GbisAPIClient.swift */,
+				AB0000000000000000000019 /* GbisRideTracker.swift */,
+			);
+			path = Gbis;
 			sourceTree = "<group>";
 		};
 		B10000000000000000000007 /* Models */ = {
@@ -254,9 +283,16 @@
 			files = (
 				AA0000000000000000000001 /* BusIslandApp.swift in Sources */,
 				AA0000000000000000000002 /* ContentView.swift in Sources */,
+				AA0000000000000000000019 /* SettingsView.swift in Sources */,
+				AA0000000000000000000021 /* NearbyStationsMapView.swift in Sources */,
 				AA0000000000000000000003 /* BusRideProviding.swift in Sources */,
 				AA0000000000000000000004 /* MockBusRideService.swift in Sources */,
 				AA0000000000000000000005 /* LiveActivityService.swift in Sources */,
+				AA0000000000000000000015 /* APIKeyStore.swift in Sources */,
+				AA0000000000000000000020 /* LocationService.swift in Sources */,
+				AA0000000000000000000016 /* GbisModels.swift in Sources */,
+				AA0000000000000000000017 /* GbisAPIClient.swift in Sources */,
+				AA0000000000000000000018 /* GbisRideTracker.swift in Sources */,
 				AA0000000000000000000006 /* BusRideActivityAttributes.swift in Sources */,
 				AA0000000000000000000007 /* BusRideSnapshot.swift in Sources */,
 			);

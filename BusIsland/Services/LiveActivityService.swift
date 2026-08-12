@@ -32,16 +32,14 @@ public final class LiveActivityService {
         !Activity<BusRideActivityAttributes>.activities.isEmpty
     }
 
-    public func start(with snapshot: BusRideSnapshot) throws {
+    public func start(with snapshot: BusRideSnapshot) async throws {
         guard areActivitiesEnabled else {
             throw LiveActivityServiceError.activitiesDisabled
         }
 
-        // Design decision: keep a single ride visible by ending any previous prototype activity.
+        // Keep a single ride visible by ending any previous activity first.
         for activity in Activity<BusRideActivityAttributes>.activities {
-            Task {
-                await activity.end(nil, dismissalPolicy: .immediate)
-            }
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
 
         let attributes = BusRideActivityAttributes(rideID: snapshot.id)
