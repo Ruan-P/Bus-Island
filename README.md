@@ -45,7 +45,7 @@ BusIsland/
 
 - 최소 배포 타깃: iOS 17.0 (Live Activity는 iOS 16.1+ 필요, ActivityContent는 16.2+)
 - Swift 6.0 언어 모드
-- Xcode 16.2 (CI 고정), macOS runner: `macos-15`
+- Xcode 16.4 (CI 고정), macOS runner: `macos-15`
 - 빌드/아카이브는 `CODE_SIGNING_ALLOWED=NO`로 서명 없이 수행
 
 `NSSupportsLiveActivities`는 앱 `Info.plist`에 포함되어 있어 설정에서 Live Activities를 허용하면 Dynamic Island/잠금 화면에 표시됩니다. 잦은 업데이트(Frequent Updates)는 아직 사용하지 않으며, 필요하면 `NSSupportsLiveActivitiesFrequentUpdates`를 추가해야 합니다.

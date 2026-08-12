@@ -130,7 +130,7 @@
 
 ## OVERVIEW
 
-서울 버스 하차 알림을 iPhone Dynamic Island + Live Activity로 보여주는 SwiftUI 프로토타입. Swift 6, iOS 17.0+, 외부 dependency 없음. 빌드는 GitHub Actions macOS runner(Xcode 16.2)에서 서명 없이 수행하고 unsigned IPA를 artifact로 업로드한다.
+서울 버스 하차 알림을 iPhone Dynamic Island + Live Activity로 보여주는 SwiftUI 프로토타입. Swift 6, iOS 17.0+, 외부 dependency 없음. 빌드는 GitHub Actions macOS runner(Xcode 16.4)에서 서명 없이 수행하고 unsigned IPA를 artifact로 업로드한다.
 
 ## STRUCTURE
 

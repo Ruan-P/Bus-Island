@@ -1,7 +1,7 @@
 # BusIsland 개발 현황 및 다음 단계
 
 마지막 갱신: 2026-08-12
-작성 시점 커밋: `d06d1a0` (main), CI run #1/#2 실패
+작성 시점 커밋: `ec12d8a` (main), CI run #5 성공
 
 ## 완료된 작업
 
@@ -17,44 +17,40 @@
 - README (Windows 워크플로우, 서명 관련 안내)
 - AGENTS.md에 코드 맵/구조/컨벤션 통합
 - public repo `Ruan-P/Bus-Island` 생성·연결, main 푸시 완료
+- CI 빌드 그린 (run #5, 커밋 `ec12d8a`, Xcode 16.4, iOS 18.5 SDK)
+  - `Build (no code signing)` / `Archive (no code signing)` 모두 성공 (`ARCHIVE SUCCEEDED`)
+  - 앱 + 위젯 타깃 모두 컴파일·링크, 위젯이 앱에 임베드됨
+  - 산출물 artifact 2종 업로드 완료:
+    - `BusIsland-unsigned-ipa` (84 KB, sha256 `ed3ff942...`)
+    - `BusIsland-xcarchive` (1.1 MB, sha256 `5a998376...`)
 
-## CI 빌드 실패 원인 (확정)
+## CI 빌드 실패 원인과 수정 (완료)
 
-워크플로우는 checkout/Xcode 선택까지 성공, `xcodebuild build` 단계에서 실패.
-실패 로그 기준 (run 31584270141, Xcode 16.2, iOS 18.2 SDK, Release-iphoneos):
+최초 실패는 `actool`이 **iphonesimulator SDK(22C146, Xcode 16.2)** 로 AppIcon
+에셋 카탈로그를 컴파일하려 했지만 runner에 설치된 시뮬레이터 런타임
+(22F77/22G86/23A8464/23B86/23C54)과 짝이 맞지 않아 발생.
 
-```
-BusIsland/Assets.xcassets: error: No simulator runtime version
-from [22F77, 22G86, 23A8464, 23B86, 23C54] available to use with
-iphonesimulator SDK version 22C146
-```
+적용한 수정:
 
-### 루트 원인
-
-`actool`이 **iphonesimulator SDK(22C146)** 로 에셋 카탈로그를 컴파일하려 했지만,
-runner에 설치된 시뮬레이터 런타임 버전이 호환되지 않음.
-project.pbxproj에서 `SUPPORTED_PLATFORMS`를 명시하지 않아 기본값
-(iphoneos + iphonesimulator)으로 확장됐고, 시뮬레이터용 actool이 실패했다.
-
-### 수정 계획 (미적용, 대기 중)
-
-1. `BusIsland.xcodeproj/project.pbxproj`의 앱·위젯 타깃에
-   `SUPPORTED_PLATFORMS = iphoneos;` 추가 → actool이 device 전용으로만 실행.
-2. 부수 경고 수정:
-   - 위젯 타깃 `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME` 참조 제거
-     (위젯 자산 카탈로그에 AccentColor 없음).
-   - AppIcon single-size 항목에 `"filename": "AppIcon.png"` 추가
-     ("unassigned child" 경고 제거).
-3. push → CI 재실행으로 검증.
+1. `project.pbxproj`에 앱·위젯 타깃 `SUPPORTED_PLATFORMS = iphoneos;` 추가
+   → actool이 device 플랫폼으로만 실행.
+2. 위젯 타깃 `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME` 제거
+   (위젯 자산 카탈로그에 AccentColor 없음).
+3. AppIcon single-size 항목에 `"filename": "AppIcon.png"` 추가
+   ("unassigned child" 경고 제거).
+4. 워크플로우 Xcode 16.2 → **16.4** 전환 (iOS 18.5 SDK 22F77, runner 설치
+   런타임과 호환) → run #5 그린 확인.
 
 ## 다음 단계 (우선순위순)
 
 1. 위 수정 적용 후 CI 그린 확인
 2. artifact(IPA) 다운로드 → sideloader로 iPhone 설치 → 실제 기기 QA
+   - 앱 실행 → 버튼으로 Live Activity 시작 → Dynamic Island/Lock Screen 표시 확인
 3. (이후) 서울 버스 API 구현체를 `BusRideProviding`에 연결
 
 ## 참고 (검증 안 된 것)
 
-- Swift 소스의 실제 컴파일 통과 여부는 CI가 돌기 전까지 확인 불가 (Windows에는 Xcode 없음).
-  빌드 실패는 컴파일 이전 단계(actool)에서 발생했으므로 Swift 코드의 오류 여부는 아직 미검증.
-- 잠금 화면에서의 실제 표시, Dynamic Island 렌더링은 실기기 sideload 후에만 확인 가능.
+- 잠금 화면/Dynamic Island의 실제 렌더링은 실기기 sideload 후에만 확인 가능.
+- `Validate` 단계에서 "All interface orientations must be supported unless the
+  app requires full screen" 경고가 출력되지만 빌드 실패가 아니며, App Store
+  배포가 목표가 아니므로 현재 무시. 추후 필요 시 Info.plist에 회전 방향 명시.
