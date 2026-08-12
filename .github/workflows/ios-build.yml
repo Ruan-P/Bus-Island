@@ -24,7 +24,7 @@ jobs:
           echo "=== HEAD ==="
           git rev-parse --short HEAD
           echo "=== ContentView markers ==="
-          grep -n "BI-GBIS v1.1 build 6" BusIsland/ContentView.swift
+          grep -n "BI-GBIS v1.1 build 7" BusIsland/ContentView.swift
           grep -n "openapi.gg.go.kr/BusStation" BusIsland/ContentView.swift
           grep -n "bakedDefaultKey" BusIsland/Services/APIKeyStore.swift
           test -f BusIsland/Services/GgBusStationClient.swift
@@ -91,8 +91,8 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST" || true
           echo "=== strings check ==="
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 6" || {
-            echo "ERROR: compiled binary missing 'BI-GBIS v1.1 build 6'"
+          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 7" || {
+            echo "ERROR: compiled binary missing 'BI-GBIS v1.1 build 7'"
             echo "$STRINGS" | grep -E "BI-GBIS|GBIS|테스트|사당|API 키" | head -50
             exit 1
           }
@@ -116,18 +116,18 @@ jobs:
           cp -R "$APP_PATH" "$PAYLOAD/"
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build6-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-v1.1-build7-GBIS.ipa" Payload
           )
           ls -lh build/ipa/
           # Keep legacy name too for existing docs
-          cp build/ipa/BusIsland-v1.1-build6-GBIS.ipa build/BusIsland-unsigned.ipa
-          shasum -a 256 build/ipa/BusIsland-v1.1-build6-GBIS.ipa
+          cp build/ipa/BusIsland-v1.1-build7-GBIS.ipa build/BusIsland-unsigned.ipa
+          shasum -a 256 build/ipa/BusIsland-v1.1-build7-GBIS.ipa
 
       - name: Upload IPA artifact (versioned name)
         uses: actions/upload-artifact@v4
         with:
-          name: BusIsland-v1.1-build6-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build6-GBIS.ipa
+          name: BusIsland-v1.1-build7-GBIS-ipa
+          path: build/ipa/BusIsland-v1.1-build7-GBIS.ipa
           if-no-files-found: error
 
       - name: Upload IPA artifact (legacy name)

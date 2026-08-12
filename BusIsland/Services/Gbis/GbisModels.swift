@@ -148,7 +148,8 @@ struct LosslessStringCodable: Decodable, Sendable {
         } else if let int = try? container.decode(Int.self) {
             value = String(int)
         } else if let double = try? container.decode(Double.self) {
-            value = String(Int(double))
+            // Keep fractional digits for WGS84 coordinates.
+            value = String(double)
         } else {
             value = ""
         }
