@@ -24,7 +24,7 @@ jobs:
           echo "=== HEAD ==="
           git rev-parse --short HEAD
           echo "=== ContentView markers ==="
-          grep -n "BusIsland v1.1" BusIsland/ContentView.swift
+          grep -n "BI-GBIS v1.1" BusIsland/ContentView.swift
           grep -n "API 키 설정" BusIsland/ContentView.swift
           if grep -n "테스트 버스 라이드" BusIsland/ContentView.swift; then
             echo "ERROR: old mock UI string still in ContentView.swift"
@@ -89,9 +89,9 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST" || true
           echo "=== strings check ==="
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BusIsland v1.1" || {
-            echo "ERROR: compiled binary missing 'BusIsland v1.1'"
-            echo "$STRINGS" | grep -i "busisland\|테스트\|사당\|GBIS\|API" | head -50
+          echo "$STRINGS" | grep -F "BI-GBIS v1.1" || {
+            echo "ERROR: compiled binary missing 'BI-GBIS v1.1'"
+            echo "$STRINGS" | grep -E "BI-GBIS|GBIS|테스트|사당|API 키" | head -50
             exit 1
           }
           if echo "$STRINGS" | grep -F "테스트 버스 라이드"; then
