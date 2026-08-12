@@ -119,3 +119,73 @@
 이 상태까지 한 번에 만들어라.
 
 코드를 작성하기 전에 프로젝트 구조를 짧게 설명하고, 그 다음 실제 파일을 생성/수정하라.
+
+---
+
+# PROJECT KNOWLEDGE BASE
+
+**Generated:** 2026-08-12
+**Commit:** bd1df32
+**Branch:** main
+
+## OVERVIEW
+
+서울 버스 하차 알림을 iPhone Dynamic Island + Live Activity로 보여주는 SwiftUI 프로토타입. Swift 6, iOS 17.0+, 외부 dependency 없음. 빌드는 GitHub Actions macOS runner(Xcode 16.2)에서 서명 없이 수행하고 unsigned IPA를 artifact로 업로드한다.
+
+## STRUCTURE
+
+```
+BusIsland/                   # 메인 앱
+├── BusIslandApp.swift       # 앱 진입점
+├── ContentView.swift        # 데모 UI + BusRideDemoViewModel
+├── Services/                # 서비스 계층 (BusRideProviding 프로토콜 경계)
+└── Assets.xcassets/
+BusIslandWidget/             # Widget Extension (Live Activity UI 전담)
+├── BusIslandWidgetBundle.swift
+└── BusRideLiveActivity.swift
+Shared/Models/               # 두 타깃이 컴파일하는 공유 모델
+├── BusRideActivityAttributes.swift
+└── BusRideSnapshot.swift
+BusIsland.xcodeproj/         # 수작업 유지, xcodeproj에서 직접 빌드
+.github/workflows/ios-build.yml
+```
+
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| Live Activity 시작/업데이트/종료 | `BusIsland/Services/LiveActivityService.swift` | ActivityKit 전담, @MainActor |
+| 라이드 상태 로직 (Mock) | `BusIsland/Services/MockBusRideService.swift` | 서울 버스 API 구현체로 교체할 대상 |
+| API 교체 경계 | `BusIsland/Services/BusRideProviding.swift` | 프로토콜만 의존하면 UI/ActivityKit 불변 |
+| Dynamic Island / Lock Screen UI | `BusIslandWidget/BusRideLiveActivity.swift` | Compact/Expanded/Minimal/Lock Screen 모두 여기 |
+| 앱↔위젯 공유 타입 | `Shared/Models/` | ContentState 변경이 전파되는 곳 |
+| CI 빌드/아티팩트 | `.github/workflows/ios-build.yml` | unsigned IPA + xcarchive 업로드 |
+| 빌드 설정 및 서명 안내 | `README.md` | 서명 없는 IPA → sideloader 재서명 |
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| `BusRideActivityAttributes` | struct | Shared/Models | ActivityKit 계약, ContentState 포함 |
+| `BusRideActivityAttributes.ContentState` | struct | Shared/Models | Codable/Hashable/Sendable, 화면 표시 데이터 |
+| `BusRideSnapshot` | struct | Shared/Models | 앱 도메인 스냅샷, `activityState` 매핑 |
+| `BusRideProviding` | protocol | BusIsland/Services | 라이드 상태 공급 추상화 |
+| `MockBusRideService` | class | BusIsland/Services | @MainActor Mock 구현 |
+| `LiveActivityService` | class | BusIsland/Services | ActivityKit 래퍼, start/update/end |
+| `BusRideDemoViewModel` | class | BusIsland/ContentView | @Observable, 버튼 액션 오케스트레이션 |
+| `BusRideLiveActivity` | struct | BusIslandWidget | Widget, ActivityConfiguration + DynamicIsland |
+
+## CONVENTIONS
+
+- Swift 6 언어 모드 (`SWIFT_VERSION = 6.0`), iOS 17.0 배포 타깃
+- UI는 @MainActor + @Observable, 서비스는 프로토콜 경계로 분리
+- 주석은 핵심 설계 결정에만 작성
+- 서명 없이 빌드 (`CODE_SIGNING_ALLOWED=NO`), Apple 서명 관련 사항은 README에만 명시
+- 로컬 빌드 불가: 수정 → push → CI → artifact → sideload 순환
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- `BusRideProviding`을 우회해 UI에서 ActivityKit에 직접 접근
+- ContentState에 UI 전용 타입/로직을 넣기
+- GitHub Actions 워크플로우에 시크릿(인증서/프로파일)을 그대로 커밋
+- Xcode 없이 로컬에서 빌드 가능하다고 가정
