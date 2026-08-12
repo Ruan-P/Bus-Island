@@ -83,7 +83,7 @@ struct NearbyStationsMapView: View {
                   let station = viewModel.nearbyStations.first(where: { $0.stationId == newValue })
             else { return }
             Task {
-                await viewModel.selectStation(station)
+                await viewModel.selectNearbyStation(station)
                 dismiss()
             }
         }
@@ -105,7 +105,7 @@ struct NearbyStationsMapView: View {
             ForEach(viewModel.nearbyStations) { station in
                 Button {
                     Task {
-                        await viewModel.selectStation(station)
+                        await viewModel.selectNearbyStation(station)
                         dismiss()
                     }
                 } label: {

@@ -11,7 +11,7 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 8")
+                        Text("BI-GBIS v1.1 build 9")
                             .font(.title2.bold())
                         Text("근처정류장: openapi.gg.go.kr/BusStation")
                             .font(.subheadline)
