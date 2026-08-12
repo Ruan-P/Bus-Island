@@ -25,11 +25,13 @@ struct NearbyStationsMapView: View {
                 } label: {
                     Image(systemName: "location.fill")
                 }
-                .disabled(!viewModel.hasAPIKey || viewModel.isBusy)
+                .disabled(viewModel.isBusy)
             }
         }
         .task {
-            if viewModel.nearbyStations.isEmpty {
+            // Always ask location first so the system prompt appears on this screen.
+            await viewModel.requestLocationPermissionOnly()
+            if viewModel.hasAPIKey, viewModel.nearbyStations.isEmpty {
                 await viewModel.loadNearbyStations()
             } else {
                 updateCamera()

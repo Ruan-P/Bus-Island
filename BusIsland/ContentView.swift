@@ -9,9 +9,33 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("BusIsland v1.1 · GBIS")
+                            .font(.headline)
+                        Text("경기버스 · 정류장→노선→하차 · GPS/지도")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("빌드 \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 4)
+
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Label(
+                            viewModel.hasAPIKey ? "API 키 설정 (저장됨)" : "API 키 설정 (필수)",
+                            systemImage: "key.fill"
+                        )
+                    }
+                }
+
                 if !viewModel.hasAPIKey {
                     Section {
-                        Label("설정에서 공공데이터포털 인증키를 먼저 저장하세요.", systemImage: "key.fill")
+                        Text("data.go.kr Decoding 키를 설정에 저장해야 정류장 검색/GPS가 동작합니다.")
+                            .font(.footnote)
                             .foregroundStyle(.orange)
                     }
                 }
@@ -38,7 +62,7 @@ struct ContentView: View {
                     NavigationLink {
                         SettingsView()
                     } label: {
-                        Image(systemName: "gearshape")
+                        Image(systemName: "gearshape.fill")
                     }
                 }
             }
@@ -83,19 +107,25 @@ struct ContentView: View {
 
     private var nearbySection: some View {
         Section {
+            // Always tappable so location permission can be requested even before API key.
+            Button {
+                Task { await viewModel.requestLocationPermissionOnly() }
+            } label: {
+                Label("위치 권한 요청", systemImage: "location.circle")
+            }
+
             NavigationLink {
                 NearbyStationsMapView(viewModel: viewModel)
             } label: {
-                Label("내 주변 정류장 (지도)", systemImage: "location.circle.fill")
+                Label("내 주변 정류장 (지도)", systemImage: "map.fill")
             }
-            .disabled(!viewModel.hasAPIKey)
 
             Button {
                 Task { await viewModel.loadNearbyStations() }
             } label: {
                 Label("GPS로 근처 정류장 불러오기", systemImage: "location.fill")
             }
-            .disabled(!viewModel.hasAPIKey || viewModel.isBusy)
+            .disabled(viewModel.isBusy)
 
             if !viewModel.nearbyStations.isEmpty {
                 ForEach(viewModel.nearbyStations.prefix(8)) { station in
@@ -122,9 +152,9 @@ struct ContentView: View {
                 }
             }
         } header: {
-            Text("근처 정류장")
+            Text("근처 정류장 · GPS / 지도")
         } footer: {
-            Text(viewModel.locationStatusMessage ?? "Apple MapKit 지도 + GBIS 좌표 검색. 카카오맵 SDK는 외부 의존이라 사용하지 않습니다.")
+            Text(viewModel.locationStatusMessage ?? "위치 권한 → GPS 불러오기 → 정류장 선택. 지도는 Apple MapKit.")
         }
     }
 
@@ -367,10 +397,22 @@ final class BusRideViewModel {
         }
     }
 
+    func requestLocationPermissionOnly() async {
+        await run {
+            locationStatusMessage = "위치 권한 요청 중…"
+            _ = try await locationService.ensureWhenInUseAuthorization()
+            locationStatusMessage = locationService.isAuthorized
+                ? "위치 권한 허용됨 — GPS 불러오기를 누르세요"
+                : "위치 권한이 필요합니다"
+        }
+    }
+
     func loadNearbyStations() async {
         await run {
+            guard hasAPIKey else {
+                throw GbisAPIError.missingServiceKey
+            }
             locationStatusMessage = "위치 확인 중…"
-            locationService.requestWhenInUseAuthorization()
             let location = try await locationService.currentLocation()
             userCoordinate = location.coordinate
             locationStatusMessage = String(

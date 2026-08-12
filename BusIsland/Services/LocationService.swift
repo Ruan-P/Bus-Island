@@ -11,7 +11,7 @@ public enum LocationServiceError: Error, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .denied:
-            return "위치 권한이 거부되었습니다. 설정 > BusIsland에서 허용해 주세요."
+            return "위치 권한이 거부되었습니다. iPhone 설정 > BusIsland > 위치에서 허용해 주세요."
         case .restricted:
             return "위치 서비스를 사용할 수 없습니다."
         case .unavailable:
@@ -29,7 +29,8 @@ public final class LocationService: NSObject {
     public static let shared = LocationService()
 
     private let manager = CLLocationManager()
-    private var continuation: CheckedContinuation<CLLocation, Error>?
+    private var locationContinuation: CheckedContinuation<CLLocation, Error>?
+    private var authContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
 
     public override init() {
         super.init()
@@ -41,36 +42,65 @@ public final class LocationService: NSObject {
         manager.authorizationStatus
     }
 
-    public func requestWhenInUseAuthorization() {
-        manager.requestWhenInUseAuthorization()
+    public var isAuthorized: Bool {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            return true
+        default:
+            return false
+        }
     }
 
-    /// One-shot current location.
-    public func currentLocation(timeoutSeconds: TimeInterval = 12) async throws -> CLLocation {
-        switch manager.authorizationStatus {
+    /// Ensures when-in-use permission is granted (shows system prompt if needed).
+    @discardableResult
+    public func ensureWhenInUseAuthorization() async throws -> CLAuthorizationStatus {
+        let status = manager.authorizationStatus
+        switch status {
+        case .authorizedAlways, .authorizedWhenInUse:
+            return status
+        case .denied:
+            throw LocationServiceError.denied
+        case .restricted:
+            throw LocationServiceError.restricted
         case .notDetermined:
+            break
+        @unknown default:
+            break
+        }
+
+        return await withCheckedContinuation { continuation in
+            self.authContinuation = continuation
             manager.requestWhenInUseAuthorization()
+        }
+    }
+
+    /// One-shot current location. Waits for permission first.
+    public func currentLocation(timeoutSeconds: TimeInterval = 15) async throws -> CLLocation {
+        let status = try await ensureWhenInUseAuthorization()
+        switch status {
+        case .authorizedAlways, .authorizedWhenInUse:
+            break
         case .denied:
             throw LocationServiceError.denied
         case .restricted:
             throw LocationServiceError.restricted
         default:
-            break
+            throw LocationServiceError.unavailable
         }
 
-        if continuation != nil {
-            continuation?.resume(throwing: LocationServiceError.unavailable)
-            continuation = nil
+        if locationContinuation != nil {
+            locationContinuation?.resume(throwing: LocationServiceError.unavailable)
+            locationContinuation = nil
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
+            self.locationContinuation = continuation
             manager.requestLocation()
 
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(timeoutSeconds))
-                if let pending = self.continuation {
-                    self.continuation = nil
+                if let pending = self.locationContinuation {
+                    self.locationContinuation = nil
                     pending.resume(throwing: LocationServiceError.timedOut)
                 }
             }
@@ -80,23 +110,31 @@ public final class LocationService: NSObject {
 
 extension LocationService: CLLocationManagerDelegate {
     public nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        // No-op; next requestLocation will use updated status.
+        let status = manager.authorizationStatus
+        Task { @MainActor in
+            // Only resume when user has responded (not still notDetermined).
+            guard status != .notDetermined else { return }
+            if let authContinuation {
+                self.authContinuation = nil
+                authContinuation.resume(returning: status)
+            }
+        }
     }
 
     public nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         Task { @MainActor in
             guard let location = locations.last else { return }
-            guard let continuation else { return }
-            self.continuation = nil
-            continuation.resume(returning: location)
+            guard let locationContinuation else { return }
+            self.locationContinuation = nil
+            locationContinuation.resume(returning: location)
         }
     }
 
     public nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
-            guard let continuation else { return }
-            self.continuation = nil
-            continuation.resume(throwing: LocationServiceError.underlying(error.localizedDescription))
+            guard let locationContinuation else { return }
+            self.locationContinuation = nil
+            locationContinuation.resume(throwing: LocationServiceError.underlying(error.localizedDescription))
         }
     }
 }
