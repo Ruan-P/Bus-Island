@@ -1,20 +1,37 @@
 import Foundation
 import Security
 
-/// Persists the data.go.kr service key in Keychain (not source / not IPA plaintext defaults).
+/// data.go.kr service key storage.
+/// - Default key is baked for personal sideload builds (can be overridden in Settings).
+/// - Always normalizes to **Decoding** form (raw `+/=`); URL encoding is applied at request time.
 public final class APIKeyStore: Sendable {
     public static let shared = APIKeyStore()
+
+    /// Personal default (Decoding key). Override via Settings / Keychain.
+    public static let bakedDefaultKey =
+        "odnBXzgjK5VGCmLbg/VIzxvo6CcBW3gmZmfW/9rmY80IsVTQNtjHuK6AI8jNVZdDrNCIaSiAbOLas5kbPR7pfg=="
 
     private let service = "com.busisland.BusIsland"
     private let account = "data.go.kr.serviceKey"
 
     public init() {}
 
+    /// Effective key used by API client (Keychain override → baked default).
     public var serviceKey: String? {
-        get { read() }
+        get {
+            if let stored = read(), !stored.isEmpty {
+                return Self.normalizedDecodingKey(stored)
+            }
+            return Self.normalizedDecodingKey(Self.bakedDefaultKey)
+        }
         set {
-            if let newValue, !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                save(newValue.trimmingCharacters(in: .whitespacesAndNewlines))
+            if let newValue {
+                let normalized = Self.normalizedDecodingKey(newValue)
+                if normalized.isEmpty {
+                    delete()
+                } else {
+                    save(normalized)
+                }
             } else {
                 delete()
             }
@@ -24,6 +41,21 @@ public final class APIKeyStore: Sendable {
     public var hasServiceKey: Bool {
         guard let key = serviceKey else { return false }
         return !key.isEmpty
+    }
+
+    public var isUsingBakedDefault: Bool {
+        read() == nil
+    }
+
+    /// Convert Encoding key (`%2F`…) to Decoding key if needed.
+    public static func normalizedDecodingKey(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        // Already looks percent-encoded → decode once.
+        if trimmed.contains("%") {
+            return trimmed.removingPercentEncoding ?? trimmed
+        }
+        return trimmed
     }
 
     private func read() -> String? {

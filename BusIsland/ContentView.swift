@@ -11,12 +11,12 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 4")
+                        Text("BI-GBIS v1.1 build 5")
                             .font(.title2.bold())
-                        Text("경기버스 하차알림 · 이 문구가 보이면 새 빌드")
+                        Text("경기버스 · 노선 검색 → 탑승/하차 → Island")
                             .font(.subheadline)
                             .foregroundStyle(.orange)
-                        Text("홈 아이콘 이름도 BI-GBIS 여야 합니다")
+                        Text(viewModel.keyStatusText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -25,38 +25,27 @@ struct ContentView: View {
                     NavigationLink {
                         SettingsView()
                     } label: {
-                        Label(
-                            viewModel.hasAPIKey ? "API 키 설정 (저장됨)" : "API 키 설정 (필수)",
-                            systemImage: "key.fill"
-                        )
-                    }
-                }
-
-                if !viewModel.hasAPIKey {
-                    Section {
-                        Text("data.go.kr Decoding 키를 설정에 저장해야 정류장 검색/GPS가 동작합니다.")
-                            .font(.footnote)
-                            .foregroundStyle(.orange)
+                        Label("API 키 설정 (선택)", systemImage: "key.fill")
                     }
                 }
 
                 statusSection
+                routeSearchSection
+                if !viewModel.routeResults.isEmpty {
+                    routeResultsSection
+                }
                 nearbySection
-                stationSearchSection
-                if !viewModel.stationResults.isEmpty {
-                    stationResultsSection
-                }
-                if viewModel.selectedStation != nil {
-                    routesSection
-                }
                 if viewModel.selectedRoute != nil {
+                    boardingSection
+                }
+                if viewModel.selectedStation != nil, viewModel.selectedRoute != nil {
                     destinationSection
                 }
                 if viewModel.snapshot != nil || viewModel.isActivityRunning {
                     rideSection
                 }
             }
-            .navigationTitle("BusIsland")
+            .navigationTitle("BI-GBIS")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
@@ -83,15 +72,11 @@ struct ContentView: View {
             }
             .task { viewModel.refreshStatus() }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active {
-                    viewModel.refreshStatus()
-                }
+                if phase == .active { viewModel.refreshStatus() }
             }
             .onAppear { viewModel.refreshStatus() }
         }
     }
-
-    // MARK: - Sections
 
     private var statusSection: some View {
         Section("상태") {
@@ -105,42 +90,88 @@ struct ContentView: View {
         }
     }
 
+    private var routeSearchSection: some View {
+        Section {
+            HStack {
+                TextField("노선 번호 (예: 1-1, 8, 11-2)", text: $viewModel.routeQuery)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.numbersAndPunctuation)
+                    .submitLabel(.search)
+                    .onSubmit { Task { await viewModel.searchRoutes() } }
+                Button("검색") {
+                    Task { await viewModel.searchRoutes() }
+                }
+                .disabled(viewModel.routeQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isBusy)
+            }
+        } header: {
+            Text("1. 노선 검색")
+        } footer: {
+            Text("이 API 키는 정류소 검색 권한이 없어 노선 번호로 시작합니다. (노선/도착 API 사용)")
+        }
+    }
+
+    private var routeResultsSection: some View {
+        Section("노선 선택") {
+            ForEach(viewModel.routeResults) { route in
+                Button {
+                    Task { await viewModel.selectRoute(route) }
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(route.routeName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            if !route.subtitle.isEmpty {
+                                Text(route.subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if viewModel.selectedRoute?.routeId == route.routeId {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var nearbySection: some View {
         Section {
-            // Always tappable so location permission can be requested even before API key.
             Button {
                 Task { await viewModel.requestLocationPermissionOnly() }
             } label: {
                 Label("위치 권한 요청", systemImage: "location.circle")
             }
 
-            NavigationLink {
-                NearbyStationsMapView(viewModel: viewModel)
-            } label: {
-                Label("내 주변 정류장 (지도)", systemImage: "map.fill")
-            }
-
             Button {
                 Task { await viewModel.loadNearbyStations() }
             } label: {
-                Label("GPS로 근처 정류장 불러오기", systemImage: "location.fill")
+                Label("GPS 근처 정류장 (안양·의왕 노선 기반)", systemImage: "location.fill")
             }
             .disabled(viewModel.isBusy)
 
+            NavigationLink {
+                NearbyStationsMapView(viewModel: viewModel)
+            } label: {
+                Label("지도에서 보기", systemImage: "map.fill")
+            }
+            .disabled(viewModel.nearbyStations.isEmpty)
+
             if !viewModel.nearbyStations.isEmpty {
-                ForEach(viewModel.nearbyStations.prefix(8)) { station in
+                ForEach(viewModel.nearbyStations.prefix(10)) { station in
                     Button {
-                        Task { await viewModel.selectStation(station) }
+                        Task { await viewModel.selectNearbyStation(station) }
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(station.stationName)
                                     .foregroundStyle(.primary)
-                                if !station.subtitle.isEmpty {
-                                    Text(station.subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text(station.subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                             Spacer()
                             if viewModel.selectedStation?.stationId == station.stationId {
@@ -152,83 +183,39 @@ struct ContentView: View {
                 }
             }
         } header: {
-            Text("근처 정류장 · GPS / 지도")
+            Text("GPS 근처 (선택)")
         } footer: {
-            Text(viewModel.locationStatusMessage ?? "위치 권한 → GPS 불러오기 → 정류장 선택. 지도는 Apple MapKit.")
+            Text(viewModel.locationStatusMessage ?? "정류소 API 권한 없음 → 주요 노선 정류장 좌표로 근처를 계산합니다.")
         }
     }
 
-    private var stationSearchSection: some View {
+    private var boardingSection: some View {
         Section {
-            HStack {
-                TextField("정류장 이름 (예: 안양역, 의왕)", text: $viewModel.stationQuery)
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        Task { await viewModel.searchStations() }
-                    }
-                Button("검색") {
-                    Task { await viewModel.searchStations() }
-                }
-                .disabled(!viewModel.hasAPIKey || viewModel.stationQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        } header: {
-            Text("1. 정류장 이름 검색")
-        } footer: {
-            Text("탑승(또는 현재) 정류장을 고른 뒤, 그 정류장을 지나는 노선을 선택합니다.")
-        }
-    }
-
-    private var stationResultsSection: some View {
-        Section("정류장 선택") {
-            ForEach(viewModel.stationResults) { station in
-                Button {
-                    Task { await viewModel.selectStation(station) }
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(station.stationName)
-                                .foregroundStyle(.primary)
-                            if !station.subtitle.isEmpty {
-                                Text(station.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        if viewModel.selectedStation?.stationId == station.stationId {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.tint)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var routesSection: some View {
-        Section {
-            if viewModel.routesAtStation.isEmpty && !viewModel.isBusy {
-                Text("이 정류장을 지나는 노선이 없습니다.")
+            if viewModel.routeStations.isEmpty && !viewModel.isBusy {
+                Text("정류장 목록이 없습니다.")
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(viewModel.routesAtStation) { route in
+                if viewModel.userCoordinate != nil {
                     Button {
-                        Task { await viewModel.selectRoute(route) }
+                        viewModel.selectNearestBoarding()
+                    } label: {
+                        Label("내 위치에서 가장 가까운 정류장을 탑승으로", systemImage: "location.north.circle.fill")
+                    }
+                }
+                ForEach(viewModel.routeStations) { stop in
+                    Button {
+                        viewModel.selectBoardingStop(stop)
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(route.routeName)
-                                    .font(.headline)
+                                Text(stop.stationName)
                                     .foregroundStyle(.primary)
-                                if !route.subtitle.isEmpty {
-                                    Text(route.subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text("순번 \(stop.stationSeq)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            if viewModel.selectedRoute?.routeId == route.routeId {
+                            if viewModel.selectedStation?.stationId == stop.stationId {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(.tint)
                             }
@@ -237,18 +224,14 @@ struct ContentView: View {
                 }
             }
         } header: {
-            Text("2. 경유 노선")
-        } footer: {
-            if let station = viewModel.selectedStation {
-                Text("\(station.stationName) 경유 노선")
-            }
+            Text("2. 탑승 정류장")
         }
     }
 
     private var destinationSection: some View {
         Section {
-            if viewModel.destinationCandidates.isEmpty && !viewModel.isBusy {
-                Text("하차 가능한 이후 정류장이 없습니다. 다른 방향 정류장을 선택해 보세요.")
+            if viewModel.destinationCandidates.isEmpty {
+                Text("하차 가능한 이후 정류장이 없습니다. 탑승 정류장을 앞쪽으로 바꿔 보세요.")
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(viewModel.destinationCandidates) { stop in
@@ -321,13 +304,12 @@ final class BusRideViewModel {
     private let locationService = LocationService.shared
 
     var hasAPIKey = false
-    var stationQuery = ""
-    var stationResults: [GbisStation] = []
+    var routeQuery = ""
+    var routeResults: [GbisRoute] = []
     var nearbyStations: [GbisStation] = []
     var userCoordinate: CLLocationCoordinate2D?
     var locationStatusMessage: String?
     var selectedStation: GbisStation?
-    var routesAtStation: [GbisRoute] = []
     var selectedRoute: GbisRoute?
     var routeStations: [GbisRouteStation] = []
     var selectedDestination: GbisRouteStation?
@@ -338,8 +320,7 @@ final class BusRideViewModel {
     var activitiesEnabled = true
 
     var destinationCandidates: [GbisRouteStation] {
-        guard let boarding = selectedStation else { return routeStations }
-        // Prefer stops after the boarding station on this route direction.
+        guard let boarding = selectedStation else { return [] }
         if let boardingOnRoute = routeStations.first(where: { $0.stationId == boarding.stationId }) {
             return routeStations.filter { $0.stationSeq > boardingOnRoute.stationSeq }
         }
@@ -354,26 +335,20 @@ final class BusRideViewModel {
             && activitiesEnabled
     }
 
+    var keyStatusText: String {
+        keyStore.isUsingBakedDefault ? "API 키: 빌드 기본키" : "API 키: 사용자 저장키"
+    }
+
     var statusText: String {
-        if !hasAPIKey {
-            return "인증키 필요 — 설정에서 저장"
-        }
-        if !activitiesEnabled {
-            return "Live Activities 비활성화 (기기 설정 확인)"
-        }
+        if !hasAPIKey { return "인증키 없음" }
+        if !activitiesEnabled { return "Live Activities 비활성화" }
         if isActivityRunning {
-            return "Dynamic Island 표시 중 · \(snapshot.map { "\($0.remainingStops)정거장" } ?? "")"
+            return "Island 표시 중 · \(snapshot.map { "\($0.remainingStops)정거장" } ?? "")"
         }
-        if selectedDestination != nil {
-            return "하차 정류장 선택됨 — 시작 가능"
-        }
-        if selectedRoute != nil {
-            return "하차 정류장을 선택하세요"
-        }
-        if selectedStation != nil {
-            return "경유 노선을 선택하세요"
-        }
-        return "정류장을 검색하세요"
+        if selectedDestination != nil { return "하차 선택됨 — 시작 가능" }
+        if selectedStation != nil { return "하차 정류장을 선택하세요" }
+        if selectedRoute != nil { return "탑승 정류장을 선택하세요" }
+        return "노선 번호를 검색하세요"
     }
 
     func refreshStatus() {
@@ -382,18 +357,85 @@ final class BusRideViewModel {
         isActivityRunning = activityService.hasActiveActivity
     }
 
-    func searchStations() async {
+    func searchRoutes() async {
         await run {
-            let results = try await client.searchStations(keyword: stationQuery)
-            stationResults = results
-            selectedStation = nil
-            routesAtStation = []
+            let results = try await client.searchRoutes(keyword: routeQuery)
+            routeResults = results
             selectedRoute = nil
             routeStations = []
+            selectedStation = nil
             selectedDestination = nil
-            if results.isEmpty {
-                throw GbisAPIError.emptyResult
+            if results.isEmpty { throw GbisAPIError.emptyResult }
+        }
+    }
+
+    func selectRoute(_ route: GbisRoute) async {
+        await run {
+            selectedRoute = route
+            selectedDestination = nil
+            // Keep boarding if it exists on this route; else clear.
+            routeStations = try await client.stations(on: route.routeId)
+            if let boarding = selectedStation,
+               !routeStations.contains(where: { $0.stationId == boarding.stationId }) {
+                selectedStation = nil
             }
+            if routeStations.isEmpty { throw GbisAPIError.emptyResult }
+        }
+    }
+
+    func selectBoardingStop(_ stop: GbisRouteStation) {
+        selectedStation = GbisStation(
+            stationId: stop.stationId,
+            stationName: stop.stationName,
+            mobileNo: stop.mobileNo,
+            regionName: selectedRoute?.routeName,
+            longitude: stop.longitude,
+            latitude: stop.latitude
+        )
+        selectedDestination = nil
+        snapshot = nil
+    }
+
+    func selectNearestBoarding() {
+        guard let user = userCoordinate else { return }
+        let userLoc = CLLocation(latitude: user.latitude, longitude: user.longitude)
+        let nearest = routeStations.compactMap { stop -> (GbisRouteStation, Int)? in
+            guard let c = stop.coordinate else { return nil }
+            let m = Int(userLoc.distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude)))
+            return (stop, m)
+        }
+        .min(by: { $0.1 < $1.1 })
+        if let nearest {
+            selectBoardingStop(nearest.0)
+            locationStatusMessage = "탑승: \(nearest.0.stationName) (\(nearest.1)m)"
+        }
+    }
+
+    func selectNearbyStation(_ station: GbisStation) async {
+        await run {
+            selectedStation = station
+            selectedRoute = nil
+            selectedDestination = nil
+            routeStations = []
+            // Load routes currently arriving at this station.
+            let routes = try await client.routes(at: station.stationId)
+            routeResults = routes
+            if routes.count == 1 {
+                try await selectRouteInternal(routes[0])
+            }
+        }
+    }
+
+    func selectDestination(_ stop: GbisRouteStation) {
+        selectedDestination = stop
+        if let station = selectedStation, let route = selectedRoute {
+            let boardingSeq = routeStations.first(where: { $0.stationId == station.stationId })?.stationSeq ?? 0
+            snapshot = BusRideSnapshot(
+                id: "\(route.routeId)-\(station.stationId)-\(stop.stationId)",
+                routeNumber: route.routeName,
+                destination: stop.stationName,
+                remainingStops: max(0, stop.stationSeq - boardingSeq)
+            )
         }
     }
 
@@ -402,75 +444,23 @@ final class BusRideViewModel {
             locationStatusMessage = "위치 권한 요청 중…"
             _ = try await locationService.ensureWhenInUseAuthorization()
             locationStatusMessage = locationService.isAuthorized
-                ? "위치 권한 허용됨 — GPS 불러오기를 누르세요"
-                : "위치 권한이 필요합니다"
+                ? "위치 권한 허용됨"
+                : "위치 권한 필요"
         }
     }
 
     func loadNearbyStations() async {
         await run {
-            guard hasAPIKey else {
-                throw GbisAPIError.missingServiceKey
-            }
             locationStatusMessage = "위치 확인 중…"
             let location = try await locationService.currentLocation()
             userCoordinate = location.coordinate
-            locationStatusMessage = String(
-                format: "현재 위치 · %.5f, %.5f",
-                location.coordinate.latitude,
-                location.coordinate.longitude
-            )
+            locationStatusMessage = "근처 정류장 계산 중 (노선 기반)…"
             let results = try await client.nearbyStations(
                 longitude: location.coordinate.longitude,
                 latitude: location.coordinate.latitude
             )
             nearbyStations = results
-            stationResults = results
-            selectedStation = nil
-            routesAtStation = []
-            selectedRoute = nil
-            routeStations = []
-            selectedDestination = nil
-            if results.isEmpty {
-                throw GbisAPIError.emptyResult
-            }
-            locationStatusMessage = "근처 \(results.count)개 정류장"
-        }
-    }
-
-    func selectStation(_ station: GbisStation) async {
-        await run {
-            selectedStation = station
-            selectedRoute = nil
-            routeStations = []
-            selectedDestination = nil
-            routesAtStation = try await client.routes(at: station.stationId)
-            if routesAtStation.isEmpty {
-                throw GbisAPIError.emptyResult
-            }
-        }
-    }
-
-    func selectRoute(_ route: GbisRoute) async {
-        await run {
-            selectedRoute = route
-            selectedDestination = nil
-            routeStations = try await client.stations(on: route.routeId)
-            if routeStations.isEmpty {
-                throw GbisAPIError.emptyResult
-            }
-        }
-    }
-
-    func selectDestination(_ stop: GbisRouteStation) {
-        selectedDestination = stop
-        if let station = selectedStation, let route = selectedRoute {
-            snapshot = BusRideSnapshot(
-                id: "\(route.routeId)-\(station.stationId)-\(stop.stationId)",
-                routeNumber: route.routeName,
-                destination: stop.stationName,
-                remainingStops: max(0, stop.stationSeq - (routeStations.first(where: { $0.stationId == station.stationId })?.stationSeq ?? 0))
-            )
+            locationStatusMessage = "근처 \(results.count)개"
         }
     }
 
@@ -490,7 +480,6 @@ final class BusRideViewModel {
             try await activityService.start(with: initial)
             snapshot = initial
             isActivityRunning = true
-
             tracker.startPolling(
                 intervalSeconds: 20,
                 onUpdate: { [weak self] updated in
@@ -527,6 +516,17 @@ final class BusRideViewModel {
             await activityService.end()
             isActivityRunning = false
         }
+    }
+
+    private func selectRouteInternal(_ route: GbisRoute) async throws {
+        selectedRoute = route
+        selectedDestination = nil
+        routeStations = try await client.stations(on: route.routeId)
+        if let boarding = selectedStation,
+           !routeStations.contains(where: { $0.stationId == boarding.stationId }) {
+            // keep boarding from GPS even if not exact match list order
+        }
+        if routeStations.isEmpty { throw GbisAPIError.emptyResult }
     }
 
     private func run(_ work: () async throws -> Void) async {

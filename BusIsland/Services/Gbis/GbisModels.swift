@@ -76,6 +76,31 @@ public struct GbisRouteStation: Identifiable, Hashable, Sendable {
     public let stationSeq: Int
     public let mobileNo: String?
     public let turnYn: String?
+    public let longitude: Double?
+    public let latitude: Double?
+
+    public init(
+        stationId: String,
+        stationName: String,
+        stationSeq: Int,
+        mobileNo: String? = nil,
+        turnYn: String? = nil,
+        longitude: Double? = nil,
+        latitude: Double? = nil
+    ) {
+        self.stationId = stationId
+        self.stationName = stationName
+        self.stationSeq = stationSeq
+        self.mobileNo = mobileNo
+        self.turnYn = turnYn
+        self.longitude = longitude
+        self.latitude = latitude
+    }
+
+    public var coordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
 }
 
 public struct GbisRideSelection: Hashable, Sendable {
@@ -199,16 +224,23 @@ struct GbisRouteDTO: Decodable {
     let routeName: String?
     let routeTypeName: String?
     let regionName: String?
+    let startStationName: String?
+    let endStationName: String?
 
     func toDomain() -> GbisRoute? {
         guard let routeId = routeId?.value, !routeId.isEmpty,
               let routeName, !routeName.isEmpty
         else { return nil }
+        let region: String? = {
+            if let regionName, !regionName.isEmpty { return regionName }
+            let ends = [startStationName, endStationName].compactMap { $0 }.filter { !$0.isEmpty }
+            return ends.isEmpty ? nil : ends.joined(separator: " → ")
+        }()
         return GbisRoute(
             routeId: routeId,
             routeName: routeName,
             routeTypeName: routeTypeName,
-            regionName: regionName
+            regionName: region
         )
     }
 }
@@ -223,6 +255,8 @@ struct GbisRouteStationDTO: Decodable {
     let stationSeq: LosslessStringCodable?
     let mobileNo: LosslessStringCodable?
     let turnYn: String?
+    let x: LosslessStringCodable?
+    let y: LosslessStringCodable?
 
     func toDomain() -> GbisRouteStation? {
         guard let stationId = stationId?.value, !stationId.isEmpty,
@@ -233,8 +267,10 @@ struct GbisRouteStationDTO: Decodable {
             stationId: stationId,
             stationName: stationName,
             stationSeq: stationSeq,
-            mobileNo: mobileNo?.value,
-            turnYn: turnYn
+            mobileNo: mobileNo?.value?.trimmingCharacters(in: .whitespacesAndNewlines),
+            turnYn: turnYn,
+            longitude: Double(x?.value ?? ""),
+            latitude: Double(y?.value ?? "")
         )
     }
 }
@@ -250,6 +286,7 @@ struct GbisArrivalDTO: Decodable {
     let plateNo1: String?
     let routeId: LosslessStringCodable?
     let routeName: String?
+    let routeDestName: String?
     let staOrder: LosslessStringCodable?
 
     var remainingStops: Int? {

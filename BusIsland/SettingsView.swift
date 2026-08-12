@@ -4,22 +4,23 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var serviceKey: String = ""
     @State private var savedBanner = false
-    @State private var hasStoredKey = false
+    @State private var usingBaked = true
 
     var body: some View {
         Form {
             Section {
-                Text("공공데이터포털(data.go.kr)에서 발급한 Decoding 인증키를 붙여넣으세요.")
+                Text(usingBaked
+                     ? "빌드에 기본 API 키가 포함되어 있습니다. 다른 키를 쓰려면 아래에 붙여넣고 저장하세요."
+                     : "Keychain에 사용자 키가 저장되어 있습니다.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                SecureField("serviceKey 붙여넣기", text: $serviceKey)
+                SecureField("serviceKey (Encoding/Decoding 모두 가능)", text: $serviceKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.body.monospaced())
 
-                // Also allow plain text paste visibility toggle-free field for easier paste on device
-                TextField("키 확인용 (선택)", text: $serviceKey)
+                TextField("키 확인용", text: $serviceKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.caption.monospaced())
@@ -28,30 +29,30 @@ struct SettingsView: View {
                 Button {
                     let trimmed = serviceKey.trimmingCharacters(in: .whitespacesAndNewlines)
                     APIKeyStore.shared.serviceKey = trimmed.isEmpty ? nil : trimmed
-                    hasStoredKey = APIKeyStore.shared.hasServiceKey
+                    refreshState()
                     savedBanner = true
                 } label: {
-                    Label(hasStoredKey ? "키 다시 저장" : "키 저장", systemImage: "key.fill")
+                    Label("키 저장", systemImage: "key.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(serviceKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                if hasStoredKey {
-                    Label("키가 Keychain에 저장되어 있습니다", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                        .font(.subheadline)
-
-                    Button("키 삭제", role: .destructive) {
+                if !usingBaked {
+                    Button("기본 빌드 키로 되돌리기", role: .destructive) {
                         APIKeyStore.shared.serviceKey = nil
                         serviceKey = ""
-                        hasStoredKey = false
+                        refreshState()
                     }
+                } else {
+                    Label("기본 키 사용 중 (설정 불필요)", systemImage: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                        .font(.subheadline)
                 }
             } header: {
                 Text("GBIS API 인증키")
             } footer: {
-                Text("활용신청: 경기도 버스정류소/노선/도착/위치 조회. 키는 기기에만 저장되며 서버로 보내지 않습니다.")
+                Text("%2F 가 포함된 Encoding 키를 넣어도 자동으로 Decoding 키로 변환합니다. 이중 인코딩(400 오류)을 방지합니다.")
             }
 
             Section("활용신청 대상 (data.go.kr)") {
@@ -65,21 +66,23 @@ struct SettingsView: View {
             Section("앱 정보") {
                 LabeledContent("버전", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-")
                 LabeledContent("빌드", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-")
+                LabeledContent("키 상태", value: usingBaked ? "빌드 기본키" : "사용자 저장키")
             }
         }
         .navigationTitle("설정")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            hasStoredKey = APIKeyStore.shared.hasServiceKey
-            // Don't prefill secret into plain fields for security; user pastes again if needed.
-            if hasStoredKey, serviceKey.isEmpty {
-                serviceKey = APIKeyStore.shared.serviceKey ?? ""
-            }
-        }
+        .onAppear { refreshState() }
         .alert("저장됨", isPresented: $savedBanner) {
             Button("확인") { dismiss() }
         } message: {
-            Text("인증키가 저장되었습니다. 이제 주변 정류장/검색을 사용할 수 있습니다.")
+            Text("인증키가 적용되었습니다.")
+        }
+    }
+
+    private func refreshState() {
+        usingBaked = APIKeyStore.shared.isUsingBakedDefault
+        if !usingBaked {
+            serviceKey = APIKeyStore.shared.serviceKey ?? ""
         }
     }
 }
