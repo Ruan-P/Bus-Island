@@ -11,9 +11,9 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 5")
+                        Text("BI-GBIS v1.1 build 6")
                             .font(.title2.bold())
-                        Text("경기버스 · 노선 검색 → 탑승/하차 → Island")
+                        Text("근처정류장: openapi.gg.go.kr/BusStation")
                             .font(.subheadline)
                             .foregroundStyle(.orange)
                         Text(viewModel.keyStatusText)
@@ -30,11 +30,15 @@ struct ContentView: View {
                 }
 
                 statusSection
+                nearbySection
+                stationNameSearchSection
+                if !viewModel.stationNameResults.isEmpty {
+                    stationNameResultsSection
+                }
                 routeSearchSection
                 if !viewModel.routeResults.isEmpty {
                     routeResultsSection
                 }
-                nearbySection
                 if viewModel.selectedRoute != nil {
                     boardingSection
                 }
@@ -149,7 +153,7 @@ struct ContentView: View {
             Button {
                 Task { await viewModel.loadNearbyStations() }
             } label: {
-                Label("GPS 근처 정류장 (안양·의왕 노선 기반)", systemImage: "location.fill")
+                Label("GPS 근처 정류장 불러오기", systemImage: "location.fill")
             }
             .disabled(viewModel.isBusy)
 
@@ -158,10 +162,9 @@ struct ContentView: View {
             } label: {
                 Label("지도에서 보기", systemImage: "map.fill")
             }
-            .disabled(viewModel.nearbyStations.isEmpty)
 
             if !viewModel.nearbyStations.isEmpty {
-                ForEach(viewModel.nearbyStations.prefix(10)) { station in
+                ForEach(viewModel.nearbyStations.prefix(12)) { station in
                     Button {
                         Task { await viewModel.selectNearbyStation(station) }
                     } label: {
@@ -183,9 +186,51 @@ struct ContentView: View {
                 }
             }
         } header: {
-            Text("GPS 근처 (선택)")
+            Text("0. GPS 근처 정류장")
         } footer: {
-            Text(viewModel.locationStatusMessage ?? "정류소 API 권한 없음 → 주요 노선 정류장 좌표로 근처를 계산합니다.")
+            Text(viewModel.locationStatusMessage ?? "경기데이터드림 BusStation (안양·의왕·군포) + GPS 반경 필터")
+        }
+    }
+
+    private var stationNameSearchSection: some View {
+        Section {
+            HStack {
+                TextField("정류장 이름 (예: 안양역)", text: $viewModel.stationNameQuery)
+                    .textInputAutocapitalization(.never)
+                    .submitLabel(.search)
+                    .onSubmit { Task { await viewModel.searchStationsByName() } }
+                Button("검색") {
+                    Task { await viewModel.searchStationsByName() }
+                }
+                .disabled(viewModel.stationNameQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isBusy)
+            }
+        } header: {
+            Text("정류장 이름 검색")
+        }
+    }
+
+    private var stationNameResultsSection: some View {
+        Section("정류장 선택") {
+            ForEach(viewModel.stationNameResults) { station in
+                Button {
+                    Task { await viewModel.selectNearbyStation(station) }
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(station.stationName)
+                                .foregroundStyle(.primary)
+                            Text(station.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if viewModel.selectedStation?.stationId == station.stationId {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -306,6 +351,8 @@ final class BusRideViewModel {
     var hasAPIKey = false
     var routeQuery = ""
     var routeResults: [GbisRoute] = []
+    var stationNameQuery = ""
+    var stationNameResults: [GbisStation] = []
     var nearbyStations: [GbisStation] = []
     var userCoordinate: CLLocationCoordinate2D?
     var locationStatusMessage: String?
@@ -363,8 +410,15 @@ final class BusRideViewModel {
             routeResults = results
             selectedRoute = nil
             routeStations = []
-            selectedStation = nil
             selectedDestination = nil
+            if results.isEmpty { throw GbisAPIError.emptyResult }
+        }
+    }
+
+    func searchStationsByName() async {
+        await run {
+            let results = try await client.searchStationsByName(keyword: stationNameQuery)
+            stationNameResults = results
             if results.isEmpty { throw GbisAPIError.emptyResult }
         }
     }
@@ -454,13 +508,13 @@ final class BusRideViewModel {
             locationStatusMessage = "위치 확인 중…"
             let location = try await locationService.currentLocation()
             userCoordinate = location.coordinate
-            locationStatusMessage = "근처 정류장 계산 중 (노선 기반)…"
+            locationStatusMessage = "근처 정류장 조회 중 (openapi.gg.go.kr)…"
             let results = try await client.nearbyStations(
                 longitude: location.coordinate.longitude,
                 latitude: location.coordinate.latitude
             )
             nearbyStations = results
-            locationStatusMessage = "근처 \(results.count)개"
+            locationStatusMessage = "근처 \(results.count)개 · gg.go.kr BusStation"
         }
     }
 
