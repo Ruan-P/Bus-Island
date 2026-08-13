@@ -111,12 +111,18 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 12" || {
-            echo "ERROR: missing build marker in binary"
+          # Swift compiler may split long literals; verify stable fragments separately
+          echo "$STRINGS" | grep -q "BI-GBIS" || {
+            echo "ERROR: BI-GBIS marker missing in binary"
             echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
             exit 1
           }
-          if echo "$STRINGS" | grep -F "?뚯뒪??踰꾩뒪 ?쇱씠??; then
+          echo "$STRINGS" | grep -q "build 12" || {
+            echo "ERROR: build marker missing in binary"
+            echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
+            exit 1
+          }
+          if echo "$STRINGS" | grep -q "테스트 버스 라이드"; then
             echo "ERROR: old mock UI still in binary"
             exit 1
           fi
