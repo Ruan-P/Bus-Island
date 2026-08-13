@@ -138,7 +138,7 @@ actor GbisAPIClient {
                 stationId: stationId,
                 routeId: routeId,
                 cityCode: cityCode
-            ), let stops {
+            ) {
                 return stops
             }
         }
@@ -157,7 +157,7 @@ actor GbisAPIClient {
                 stationId: stationId,
                 routeId: routeId,
                 cityCode: cityCode
-            ), let stops {
+            ) {
                 return stops
             }
         }
