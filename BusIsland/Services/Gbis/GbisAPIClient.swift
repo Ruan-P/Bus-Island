@@ -16,6 +16,9 @@ enum GbisAPIError: Error, LocalizedError, Sendable {
         case .invalidURL:
             return "API 요청 URL을 만들 수 없습니다."
         case .httpStatus(let code, let body):
+            if code >= 500 {
+                return "GBIS 버스 정보 서버 일시적 장애 (HTTP \(code)). 잠시 후 다시 시도해 주세요."
+            }
             if let body, !body.isEmpty {
                 let snippet = body.count > 160 ? String(body.prefix(160)) : body
                 return "GBIS HTTP \(code): \(snippet)"
@@ -175,29 +178,46 @@ actor GbisAPIClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 25
 
-        let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
-        }
+        var attempts = 0
+        while attempts < 3 {
+            attempts += 1
+            do {
+                let (data, response) = try await session.data(for: request)
+                if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                    if http.statusCode >= 500 && attempts < 3 {
+                        try? await Task.sleep(for: .milliseconds(800))
+                        continue
+                    }
+                    throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
+                }
 
-        if let text = String(data: data, encoding: .utf8),
-           text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
-            throw GbisAPIError.apiMessage("XML 응답 — JSON format 미지원 또는 권한 문제")
-        }
+                if let text = String(data: data, encoding: .utf8),
+                   text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("<") {
+                    throw GbisAPIError.apiMessage("XML 응답 — JSON format 미지원 또는 권한 문제")
+                }
 
-        do {
-            let envelope = try JSONDecoder().decode(GbisEnvelope<Body>.self, from: data)
-            if let header = envelope.response.msgHeader, !header.isSuccess {
-                throw GbisAPIError.apiMessage(header.resultMessage ?? "GBIS API 오류")
+                let envelope = try JSONDecoder().decode(GbisEnvelope<Body>.self, from: data)
+                if let header = envelope.response.msgHeader, !header.isSuccess {
+                    throw GbisAPIError.apiMessage(header.resultMessage ?? "GBIS API 오류")
+                }
+                guard let body = envelope.response.msgBody else {
+                    throw GbisAPIError.emptyResult
+                }
+                return body
+            } catch let error as GbisAPIError {
+                if case .httpStatus(let code, _) = error, code >= 500, attempts < 3 {
+                    try? await Task.sleep(for: .milliseconds(800))
+                    continue
+                }
+                throw error
+            } catch {
+                if attempts < 3 {
+                    try? await Task.sleep(for: .milliseconds(800))
+                    continue
+                }
+                throw GbisAPIError.decodingFailed
             }
-            guard let body = envelope.response.msgBody else {
-                throw GbisAPIError.emptyResult
-            }
-            return body
-        } catch let error as GbisAPIError {
-            throw error
-        } catch {
-            throw GbisAPIError.decodingFailed
         }
+        throw GbisAPIError.decodingFailed
     }
 }

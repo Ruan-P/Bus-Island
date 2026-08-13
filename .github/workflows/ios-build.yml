@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse --short HEAD
-          grep -n "BI-GBIS v1.1 build 10" BusIsland/ContentView.swift
+          grep -n "BI-GBIS v1.1 build 11" BusIsland/ContentView.swift
           if grep -nE '\?\.value\?\.' BusIsland -r --include='*.swift'; then
             echo "ERROR: invalid optional chaining on non-optional .value"
             exit 1
@@ -97,7 +97,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 10" || {
+          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 11" || {
             echo "ERROR: missing build marker in binary"
             echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
             exit 1
@@ -117,17 +117,17 @@ jobs:
           cp -R "$APP_PATH" build/Payload/
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build10-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-v1.1-build11-GBIS.ipa" Payload
           )
-          cp build/ipa/BusIsland-v1.1-build10-GBIS.ipa build/BusIsland-unsigned.ipa
+          cp build/ipa/BusIsland-v1.1-build11-GBIS.ipa build/BusIsland-unsigned.ipa
           ls -lh build/ipa/
-          shasum -a 256 build/ipa/BusIsland-v1.1-build10-GBIS.ipa
+          shasum -a 256 build/ipa/BusIsland-v1.1-build11-GBIS.ipa
 
       - name: Upload IPA artifact (versioned)
         uses: actions/upload-artifact@v4
         with:
-          name: BusIsland-v1.1-build10-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build10-GBIS.ipa
+          name: BusIsland-v1.1-build11-GBIS-ipa
+          path: build/ipa/BusIsland-v1.1-build11-GBIS.ipa
           if-no-files-found: error
 
       - name: Upload IPA artifact (legacy name)
