@@ -20,7 +20,8 @@ final class GbisRideTracker {
         let remaining = try await client.remainingStops(
             routeId: selection.route.routeId,
             stationId: selection.destination.stationId,
-            destinationSeq: selection.destination.stationSeq
+            destinationSeq: selection.destination.stationSeq,
+            cityCode: Self.cityCode(for: selection.boardingStation)
         )
         let snapshot = BusRideSnapshot(
             id: selection.rideID,
@@ -39,7 +40,8 @@ final class GbisRideTracker {
         let remaining = try await client.remainingStops(
             routeId: selection.route.routeId,
             stationId: selection.destination.stationId,
-            destinationSeq: selection.destination.stationSeq
+            destinationSeq: selection.destination.stationSeq,
+            cityCode: Self.cityCode(for: selection.boardingStation)
         )
         let snapshot = BusRideSnapshot(
             id: selection.rideID,
@@ -49,6 +51,15 @@ final class GbisRideTracker {
         )
         latestSnapshot = snapshot
         return snapshot
+    }
+
+    /// TAGO cityCode from boarding station region name (안양/의왕/군포, 실측).
+    private static func cityCode(for station: GbisStation) -> Int? {
+        guard let region = station.regionName else { return nil }
+        if region.contains("안양") { return 31170 }
+        if region.contains("의왕") { return 31180 }
+        if region.contains("군포") { return 31160 }
+        return nil
     }
 
     func startPolling(

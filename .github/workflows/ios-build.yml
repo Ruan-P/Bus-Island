@@ -1,4 +1,4 @@
-name: iOS Build
+﻿name: iOS Build
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse --short HEAD
-          grep -n "BI-GBIS v1.1 build 11" BusIsland/ContentView.swift
+          grep -n "BI-GBIS v1.1 build 12" BusIsland/ContentView.swift
           if grep -nE '\?\.value\?\.' BusIsland -r --include='*.swift'; then
             echo "ERROR: invalid optional chaining on non-optional .value"
             exit 1
@@ -32,8 +32,9 @@ jobs:
             exit 1
           fi
           grep -n "selectNearbyStation" BusIsland/NearbyStationsMapView.swift
-          grep -n "openapi.gg.go.kr/BusStation" BusIsland/ContentView.swift
-          test -f BusIsland/Services/GgBusStationClient.swift
+          grep -n "TAGO(1613000)" BusIsland/ContentView.swift
+          test -f BusIsland/Services/Tago/TagoStationClient.swift
+          test -f BusIsland/Services/Tago/TagoArrivalClient.swift
           test -f BusIsland/Services/Gbis/GbisAPIClient.swift
 
       - name: Select Xcode
@@ -67,7 +68,7 @@ jobs:
           set -e
           if [ "$STATUS" -ne 0 ]; then
             echo "===== COMPILE ERRORS (filtered) ====="
-            grep -E "error:|warning:.*error|❌|fatal error" "$LOG" | head -80 || true
+            grep -E "error:|warning:.*error|??fatal error" "$LOG" | head -80 || true
             echo "===== SWIFT ERROR LINES ====="
             grep -E "\.swift:[0-9]+:[0-9]+: error:" "$LOG" | head -80 || true
             echo "===== TAIL ====="
@@ -97,12 +98,12 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
           STRINGS=$(strings "$BIN" || true)
-          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 11" || {
+          echo "$STRINGS" | grep -F "BI-GBIS v1.1 build 12" || {
             echo "ERROR: missing build marker in binary"
             echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
             exit 1
           }
-          if echo "$STRINGS" | grep -F "테스트 버스 라이드"; then
+          if echo "$STRINGS" | grep -F "?뚯뒪??踰꾩뒪 ?쇱씠??; then
             echo "ERROR: old mock UI still in binary"
             exit 1
           fi
@@ -117,17 +118,17 @@ jobs:
           cp -R "$APP_PATH" build/Payload/
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build11-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-v1.1-build12-GBIS.ipa" Payload
           )
-          cp build/ipa/BusIsland-v1.1-build11-GBIS.ipa build/BusIsland-unsigned.ipa
+          cp build/ipa/BusIsland-v1.1-build12-GBIS.ipa build/BusIsland-unsigned.ipa
           ls -lh build/ipa/
-          shasum -a 256 build/ipa/BusIsland-v1.1-build11-GBIS.ipa
+          shasum -a 256 build/ipa/BusIsland-v1.1-build12-GBIS.ipa
 
       - name: Upload IPA artifact (versioned)
         uses: actions/upload-artifact@v4
         with:
-          name: BusIsland-v1.1-build11-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build11-GBIS.ipa
+          name: BusIsland-v1.1-build12-GBIS-ipa
+          path: build/ipa/BusIsland-v1.1-build12-GBIS.ipa
           if-no-files-found: error
 
       - name: Upload IPA artifact (legacy name)

@@ -36,19 +36,21 @@ enum GbisAPIError: Error, LocalizedError, Sendable {
     }
 }
 
-/// GBIS realtime (data.go.kr) + 경기데이터드림 stations (openapi.gg.go.kr).
+/// GBIS realtime (data.go.kr 6410000) + TAGO stations/arrival fallback (1613000).
 actor GbisAPIClient {
     static let shared = GbisAPIClient()
 
     private let baseURL = URL(string: "https://apis.data.go.kr/6410000")!
     private let session: URLSession
     private let keyStore: APIKeyStore
-    private let stationCatalog: GgBusStationClient
+    private let stationCatalog: TagoStationClient
+    private let tagoArrival: TagoArrivalClient
 
     init(session: URLSession = .shared, keyStore: APIKeyStore? = nil) {
         self.session = session
         self.keyStore = keyStore ?? APIKeyStore.shared
-        self.stationCatalog = GgBusStationClient.shared
+        self.stationCatalog = TagoStationClient.shared
+        self.tagoArrival = TagoArrivalClient.shared
     }
 
     // MARK: - Routes / stations on route
@@ -72,7 +74,7 @@ actor GbisAPIClient {
         return list.sorted { $0.stationSeq < $1.stationSeq }
     }
 
-    // MARK: - Nearby / name (gg.go.kr)
+    // MARK: - Nearby / name (TAGO)
 
     func nearbyStations(longitude: Double, latitude: Double) async throws -> [GbisStation] {
         try await stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
@@ -109,7 +111,12 @@ actor GbisAPIClient {
         return routes
     }
 
-    func remainingStops(routeId: String, stationId: String, destinationSeq: Int) async throws -> Int {
+    func remainingStops(
+        routeId: String,
+        stationId: String,
+        destinationSeq: Int,
+        cityCode: Int? = nil
+    ) async throws -> Int {
         _ = destinationSeq
         do {
             let body: GbisArrivalItemBody = try await get(
@@ -126,16 +133,33 @@ actor GbisAPIClient {
                 return max(0, stops)
             }
         } catch {
-            // fall through
+            // GBIS 장애 → TAGO failover
+            if let stops = try? await tagoArrival.remainingStops(
+                stationId: stationId,
+                routeId: routeId,
+                cityCode: cityCode
+            ), let stops {
+                return stops
+            }
         }
 
-        let listBody: GbisArrivalItemBody = try await get(
-            path: "busarrivalservice/v2/getBusArrivalListv2",
-            query: ["stationId": stationId]
-        )
-        if let match = listBody.busArrivalList?.items.first(where: { $0.routeId?.value == routeId }),
-           let stops = match.remainingStops {
-            return max(0, stops)
+        do {
+            let listBody: GbisArrivalItemBody = try await get(
+                path: "busarrivalservice/v2/getBusArrivalListv2",
+                query: ["stationId": stationId]
+            )
+            if let match = listBody.busArrivalList?.items.first(where: { $0.routeId?.value == routeId }),
+               let stops = match.remainingStops {
+                return max(0, stops)
+            }
+        } catch {
+            if let stops = try? await tagoArrival.remainingStops(
+                stationId: stationId,
+                routeId: routeId,
+                cityCode: cityCode
+            ), let stops {
+                return stops
+            }
         }
         throw GbisAPIError.emptyResult
     }

@@ -11,9 +11,9 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 11")
+                        Text("BI-GBIS v1.1 build 12")
                             .font(.title2.bold())
-                        Text("근처정류장: openapi.gg.go.kr/BusStation")
+                        Text("근처정류장: TAGO(1613000) · 도착 fallback: TAGO")
                             .font(.subheadline)
                             .foregroundStyle(.orange)
                         Text(viewModel.keyStatusText)
@@ -188,7 +188,7 @@ struct ContentView: View {
         } header: {
             Text("0. GPS 근처 정류장")
         } footer: {
-            Text(viewModel.locationStatusMessage ?? "경기데이터드림 BusStation (안양·의왕·군포) + GPS 반경 필터")
+            Text(viewModel.locationStatusMessage ?? "TAGO 정류소 (안양·의왕·군포) + GPS 반경 필터")
         }
     }
 
@@ -508,13 +508,13 @@ final class BusRideViewModel {
             locationStatusMessage = "위치 확인 중…"
             let location = try await locationService.currentLocation()
             userCoordinate = location.coordinate
-            locationStatusMessage = "근처 정류장 조회 중 (openapi.gg.go.kr)…"
+            locationStatusMessage = "근처 정류장 조회 중 (TAGO 1613000)…"
             let results = try await client.nearbyStations(
                 longitude: location.coordinate.longitude,
                 latitude: location.coordinate.latitude
             )
             nearbyStations = results
-            locationStatusMessage = "근처 \(results.count)개 · gg.go.kr BusStation"
+            locationStatusMessage = "근처 \(results.count)개 · TAGO 1613000"
         }
     }
 
