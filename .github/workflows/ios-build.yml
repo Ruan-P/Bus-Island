@@ -68,11 +68,24 @@ jobs:
           set -e
           if [ "$STATUS" -ne 0 ]; then
             echo "===== COMPILE ERRORS (filtered) ====="
-            grep -E "error:|warning:.*error|??fatal error" "$LOG" | head -80 || true
+            grep -E "error:|warning:.*error|fatal error" "$LOG" | head -80 || true
             echo "===== SWIFT ERROR LINES ====="
-            grep -E "\.swift:[0-9]+:[0-9]+: error:" "$LOG" | head -80 || true
+            ERRORS=$(grep -E "\.swift:[0-9]+:[0-9]+: error:" "$LOG" | head -30 || true)
+            echo "$ERRORS"
             echo "===== TAIL ====="
             tail -n 80 "$LOG" || true
+            # Publish errors as workflow annotations (visible via check-run annotations API)
+            echo "$ERRORS" | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            # Also publish to job summary so errors are visible without log download
+            {
+              echo "## ❌ xcodebuild failed (exit $STATUS)"
+              echo ""
+              echo '```'
+              echo "$ERRORS"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
             exit "$STATUS"
           fi
 

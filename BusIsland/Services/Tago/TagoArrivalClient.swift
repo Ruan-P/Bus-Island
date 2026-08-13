@@ -55,6 +55,7 @@ actor TagoArrivalClient {
         }
 
         // TAGO 응답: {"response":{"header":{...},"body":{"items":{"item":{...}},"totalCount":..}}}
+        // 결과 없으면 items가 "" 빈 문자열로 옴 → 유연 디코딩
         struct Envelope: Decodable {
             struct Header: Decodable { let resultCode: String; let resultMsg: String }
             struct Body: Decodable {
@@ -63,6 +64,16 @@ actor TagoArrivalClient {
                         let arrprevstationcnt: Int?
                     }
                     let item: Item?
+                    init(from decoder: Decoder) throws {
+                        let container = try decoder.singleValueContainer()
+                        if container.decodeNil() {
+                            item = nil
+                        } else if let single = try? container.decode(Item.self) {
+                            item = single
+                        } else {
+                            item = nil
+                        }
+                    }
                 }
                 let items: Items?
                 let totalCount: Int
