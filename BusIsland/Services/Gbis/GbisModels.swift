@@ -104,6 +104,7 @@ struct GbisRideSelection: Hashable, Sendable {
     let boardingStation: GbisStation
     let route: GbisRoute
     let destination: GbisRouteStation
+    let boardingSeq: Int
 
     var rideID: String {
         "\(route.routeId)-\(boardingStation.stationId)-\(destination.stationId)"

@@ -752,10 +752,12 @@ final class BusRideViewModel {
         else { return }
 
         await run {
+            let boardingSeq = routeStations.first(where: { $0.stationId == station.stationId })?.stationSeq ?? 0
             let selection = GbisRideSelection(
                 boardingStation: station,
                 route: route,
-                destination: destination
+                destination: destination,
+                boardingSeq: boardingSeq
             )
             let initial = try await tracker.makeInitialSnapshot(from: selection)
             try await activityService.start(with: initial)

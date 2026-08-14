@@ -119,10 +119,8 @@ actor GbisAPIClient {
     func remainingStops(
         routeId: String,
         stationId: String,
-        destinationSeq: Int,
         cityCode: Int? = nil
-    ) async throws -> Int {
-        _ = destinationSeq
+    ) async -> Int? {
         do {
             let body: GbisArrivalItemBody = try await get(
                 path: "busarrivalservice/v2/getBusArrivalItemv2",
@@ -138,14 +136,7 @@ actor GbisAPIClient {
                 return max(0, stops)
             }
         } catch {
-            // GBIS 장애 → TAGO failover
-            if let stops = try? await tagoArrival.remainingStops(
-                stationId: stationId,
-                routeId: routeId,
-                cityCode: cityCode
-            ) {
-                return stops
-            }
+            AppLog.log("GBIS arrival item fail: \(error.localizedDescription)")
         }
 
         do {
@@ -158,15 +149,18 @@ actor GbisAPIClient {
                 return max(0, stops)
             }
         } catch {
-            if let stops = try? await tagoArrival.remainingStops(
-                stationId: stationId,
-                routeId: routeId,
-                cityCode: cityCode
-            ) {
-                return stops
-            }
+            AppLog.log("GBIS arrival list fail: \(error.localizedDescription)")
         }
-        throw GbisAPIError.emptyResult
+
+        if let stops = try? await tagoArrival.remainingStops(
+            stationId: stationId,
+            routeId: routeId,
+            cityCode: cityCode
+        ) {
+            return stops
+        }
+
+        return nil
     }
 
     // MARK: - HTTP (data.go.kr)
