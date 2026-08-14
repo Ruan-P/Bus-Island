@@ -5,11 +5,10 @@ import UserNotifications
 final class RideNotificationService {
     static let shared = RideNotificationService()
 
-    private let center = UNUserNotificationCenter.current()
-
     func requestAuthorization() async {
         do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            let granted = try await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound, .badge])
             AppLog.log("notification permission=\(granted)")
         } catch {
             AppLog.log("notification permission error: \(error.localizedDescription)")
@@ -41,16 +40,14 @@ final class RideNotificationService {
     }
 
     func clearRideNotifications() {
-        center.removeDeliveredNotifications(withIdentifiers: [
+        let ids = [
             "ride.boarding.soon",
             "ride.alight.soon",
             "ride.alight.now",
-        ])
-        center.removePendingNotificationRequests(withIdentifiers: [
-            "ride.boarding.soon",
-            "ride.alight.soon",
-            "ride.alight.now",
-        ])
+        ]
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: ids)
+        center.removePendingNotificationRequests(withIdentifiers: ids)
     }
 
     private func post(id: String, title: String, body: String) {
@@ -65,11 +62,13 @@ final class RideNotificationService {
             content: content,
             trigger: nil
         )
-        center.add(request) { error in
-            if let error {
-                AppLog.log("notification \(id) failed: \(error.localizedDescription)")
-            } else {
-                AppLog.log("notification \(id) posted")
+        UNUserNotificationCenter.current().add(request) { error in
+            Task { @MainActor in
+                if let error {
+                    AppLog.log("notification \(id) failed: \(error.localizedDescription)")
+                } else {
+                    AppLog.log("notification \(id) posted")
+                }
             }
         }
     }
