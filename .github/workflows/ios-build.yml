@@ -35,7 +35,8 @@ jobs:
             exit 1
           fi
           grep -n "selectNearbyStation" BusIsland/NearbyStationsMapView.swift
-          grep -n "TAGO(1613000)" BusIsland/ContentView.swift
+          grep -n "승차" BusIsland/ContentView.swift
+          grep -n "하차" BusIsland/ContentView.swift
           test -f BusIsland/Services/Tago/TagoStationClient.swift
           test -f BusIsland/Services/Tago/TagoArrivalClient.swift
           test -f BusIsland/Services/Gbis/GbisAPIClient.swift
