@@ -68,7 +68,7 @@ private struct TagoArrivalRoot: Decodable {
         let resultMsg: String
     }
     struct Body: Decodable {
-        let item: Item?
+        let item: Items.Item?
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
