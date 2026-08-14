@@ -867,17 +867,11 @@ final class BusRideViewModel {
             snapshot = initial
             isActivityRunning = true
             tracker.startPolling(
-                intervalSeconds: 20,
+                intervalSeconds: 15,
                 onUpdate: { [weak self] updated in
                     guard let self else { return }
                     Task { @MainActor in
-                        do {
-                            try await self.activityService.update(with: updated)
-                            self.snapshot = updated
-                            self.isActivityRunning = true
-                        } catch {
-                            self.errorMessage = error.localizedDescription
-                        }
+                        await self.applyRideUpdate(updated)
                     }
                 },
                 onError: { [weak self] error in
@@ -890,7 +884,11 @@ final class BusRideViewModel {
     func markAsBoarded() async {
         await run {
             if let updated = tracker.markAsBoarded() {
-                try await activityService.update(with: updated)
+                try await activityService.update(
+                    with: updated,
+                    alertTitle: "승차함",
+                    alertBody: "\(updated.destination)까지 하차 안내를 시작합니다."
+                )
                 snapshot = updated
             }
         }
@@ -899,9 +897,52 @@ final class BusRideViewModel {
     func refreshNow() async {
         await run {
             let updated = try await tracker.refreshSnapshot()
-            try await activityService.update(with: updated)
+            await applyRideUpdate(updated)
+        }
+    }
+
+    private func applyRideUpdate(_ updated: BusRideSnapshot) async {
+        do {
+            let event = tracker.consumePhaseEvent()
+            switch event {
+            case .boardingSoon:
+                try await activityService.update(
+                    with: updated,
+                    alertTitle: "버스가 곧 도착합니다",
+                    alertBody: "\(updated.boarding)에서 승차하세요."
+                )
+            case .boarded:
+                try await activityService.update(
+                    with: updated,
+                    alertTitle: "승차 안내",
+                    alertBody: "\(updated.destination)까지 하차 안내를 시작합니다."
+                )
+            case .alightSoon:
+                try await activityService.update(
+                    with: updated,
+                    alertTitle: "하차 준비",
+                    alertBody: "다음 정류장은 \(updated.destination)입니다."
+                )
+            case .arrived:
+                try await activityService.update(
+                    with: updated,
+                    alertTitle: "하차하세요",
+                    alertBody: "\(updated.destination)에 도착했습니다."
+                )
+                snapshot = updated
+                isActivityRunning = true
+                try? await Task.sleep(for: .seconds(8))
+                await activityService.end()
+                tracker.reset()
+                isActivityRunning = false
+                return
+            case .none:
+                try await activityService.update(with: updated)
+            }
             snapshot = updated
             isActivityRunning = true
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 

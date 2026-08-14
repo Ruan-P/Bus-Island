@@ -57,13 +57,26 @@ public final class LiveActivityService {
         }
     }
 
-    public func update(with snapshot: BusRideSnapshot) async throws {
+    public func update(
+        with snapshot: BusRideSnapshot,
+        alertTitle: String? = nil,
+        alertBody: String? = nil
+    ) async throws {
         guard let activity = Activity<BusRideActivityAttributes>.activities.first else {
             throw LiveActivityServiceError.noActiveActivity
         }
 
         let content = ActivityContent(state: snapshot.activityState, staleDate: nil)
-        await activity.update(content)
+        if let alertTitle, let alertBody {
+            let alert = AlertConfiguration(
+                title: LocalizedStringResource(stringLiteral: alertTitle),
+                body: LocalizedStringResource(stringLiteral: alertBody),
+                sound: .default
+            )
+            await activity.update(content, alertConfiguration: alert)
+        } else {
+            await activity.update(content)
+        }
         activeActivityID = activity.id
     }
 
