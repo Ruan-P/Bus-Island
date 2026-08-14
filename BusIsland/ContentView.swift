@@ -661,6 +661,7 @@ final class BusRideViewModel {
     private let activityService = LiveActivityService()
     private let keyStore = APIKeyStore.shared
     private let locationService = LocationService.shared
+    private let notifications = RideNotificationService.shared
 
     var hasAPIKey = false
     var routeQuery = ""
@@ -862,6 +863,7 @@ final class BusRideViewModel {
                 destination: destination,
                 boardingSeq: boardingSeq
             )
+            await notifications.requestAuthorization()
             let initial = try await tracker.makeInitialSnapshot(from: selection)
             try await activityService.start(with: initial)
             snapshot = initial
@@ -906,10 +908,11 @@ final class BusRideViewModel {
             let event = tracker.consumePhaseEvent()
             switch event {
             case .boardingSoon:
+                notifications.notifyBoardingSoon(route: updated.routeNumber, station: updated.boarding)
                 try await activityService.update(
                     with: updated,
-                    alertTitle: "버스가 곧 도착합니다",
-                    alertBody: "\(updated.boarding)에서 승차하세요."
+                    alertTitle: "승차 1정거장",
+                    alertBody: "\(updated.boarding)에서 승차한 뒤 앱에서 승차를 눌러 주세요."
                 )
             case .boarded:
                 try await activityService.update(
@@ -918,12 +921,14 @@ final class BusRideViewModel {
                     alertBody: "\(updated.destination)까지 하차 안내를 시작합니다."
                 )
             case .alightSoon:
+                notifications.notifyAlightSoon(route: updated.routeNumber, station: updated.destination)
                 try await activityService.update(
                     with: updated,
-                    alertTitle: "하차 준비",
+                    alertTitle: "하차 1정거장",
                     alertBody: "다음 정류장은 \(updated.destination)입니다."
                 )
             case .arrived:
+                notifications.notifyArrived(route: updated.routeNumber, station: updated.destination)
                 try await activityService.update(
                     with: updated,
                     alertTitle: "하차하세요",
@@ -948,6 +953,7 @@ final class BusRideViewModel {
 
     func endTracking() async {
         await run {
+            notifications.clearRideNotifications()
             tracker.reset()
             await activityService.end()
             isActivityRunning = false
