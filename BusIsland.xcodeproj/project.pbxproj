@@ -32,6 +32,7 @@
 		AA0000000000000000000024 /* TagoArrivalClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000025 /* TagoArrivalClient.swift */; };
 		AA0000000000000000000025 /* DebugLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000026 /* DebugLogStore.swift */; };
 		AA0000000000000000000026 /* DebugConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000027 /* DebugConsoleView.swift */; };
+		AA0000000000000000000027 /* StopPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000028 /* StopPickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +86,7 @@
 		AB0000000000000000000025 /* TagoArrivalClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagoArrivalClient.swift; sourceTree = "<group>"; };
 		AB0000000000000000000026 /* DebugLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogStore.swift; sourceTree = "<group>"; };
 		AB0000000000000000000027 /* DebugConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugConsoleView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000028 /* StopPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,6 +125,7 @@
 				AB0000000000000000000020 /* SettingsView.swift */,
 				AB0000000000000000000022 /* NearbyStationsMapView.swift */,
 				AB0000000000000000000027 /* DebugConsoleView.swift */,
+				AB0000000000000000000028 /* StopPickerView.swift */,
 				B10000000000000000000006 /* Services */,
 				AB0000000000000000000006 /* Assets.xcassets */,
 				AB0000000000000000000012 /* Info.plist */,
@@ -314,6 +317,7 @@
 				AA0000000000000000000024 /* TagoArrivalClient.swift in Sources */,
 				AA0000000000000000000025 /* DebugLogStore.swift in Sources */,
 				AA0000000000000000000026 /* DebugConsoleView.swift in Sources */,
+				AA0000000000000000000027 /* StopPickerView.swift in Sources */,
 				AA0000000000000000000016 /* GbisModels.swift in Sources */,
 				AA0000000000000000000017 /* GbisAPIClient.swift in Sources */,
 				AA0000000000000000000018 /* GbisRideTracker.swift in Sources */,
@@ -465,7 +469,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -490,7 +494,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -513,7 +517,7 @@
 			buildSettings = {
 				SUPPORTED_PLATFORMS = iphoneos;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BusIslandWidget/Info.plist;
@@ -537,7 +541,7 @@
 			buildSettings = {
 				SUPPORTED_PLATFORMS = iphoneos;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BusIslandWidget/Info.plist;

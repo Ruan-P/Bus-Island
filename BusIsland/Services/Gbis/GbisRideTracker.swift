@@ -26,6 +26,7 @@ final class GbisRideTracker {
         let snapshot = BusRideSnapshot(
             id: selection.rideID,
             routeNumber: selection.route.routeName,
+            boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
             remainingStops: remaining
         )
@@ -46,6 +47,7 @@ final class GbisRideTracker {
         let snapshot = BusRideSnapshot(
             id: selection.rideID,
             routeNumber: selection.route.routeName,
+            boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
             remainingStops: remaining
         )

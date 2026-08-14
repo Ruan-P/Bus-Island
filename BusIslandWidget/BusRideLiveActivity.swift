@@ -11,33 +11,30 @@ struct BusRideLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 4) {
                         Image(systemName: "bus.fill")
-                            .font(.title3)
+                            .font(.body)
                             .foregroundStyle(.orange)
                         Text(context.state.routeNumber)
-                            .font(.title3.bold())
+                            .font(.headline.bold())
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing, spacing: 0) {
-                        Text("\(context.state.remainingStops)")
-                            .font(.title2.bold())
-                            .monospacedDigit()
-                            .foregroundStyle(.orange)
-                        Text(context.state.remainingStopsUnit)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("\(context.state.remainingStops)")
+                        .font(.headline.bold())
+                        .monospacedDigit()
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(context.state.destination)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 4)
+                    VStack(alignment: .leading, spacing: 3) {
+                        labeledStop(role: "승차", name: context.state.boarding)
+                        labeledStop(role: "하차", name: context.state.destination)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } compactLeading: {
                 HStack(spacing: 3) {
@@ -47,6 +44,7 @@ struct BusRideLiveActivity: Widget {
                     Text(context.state.routeNumber)
                         .font(.caption.bold())
                         .monospacedDigit()
+                        .lineLimit(1)
                 }
             } compactTrailing: {
                 Text(context.state.compactTrailingText)
@@ -65,29 +63,41 @@ struct BusRideLiveActivity: Widget {
     }
 
     @ViewBuilder
+    private func labeledStop(role: String, name: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(role)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, alignment: .leading)
+            Text(name.isEmpty ? "-" : name)
+                .font(.caption.weight(.medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    @ViewBuilder
     private func lockScreenView(state: BusRideActivityAttributes.ContentState) -> some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 4) {
                     Image(systemName: "bus.fill")
                         .font(.caption)
                         .foregroundStyle(.orange)
                     Text(state.routeNumber)
-                        .font(.title2.bold())
+                        .font(.headline.bold())
                         .monospacedDigit()
                 }
 
-                Text(state.destination)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                labeledStop(role: "승차", name: state.boarding)
+                labeledStop(role: "하차", name: state.destination)
             }
 
             Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 0) {
                 Text("\(state.remainingStops)")
-                    .font(.largeTitle.bold())
+                    .font(.title.bold())
                     .monospacedDigit()
                     .foregroundStyle(.orange)
                 Text(state.remainingStopsUnit)
@@ -95,7 +105,8 @@ struct BusRideLiveActivity: Widget {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .activityBackgroundTint(Color.black.opacity(0.35))
         .activitySystemActionForegroundColor(.white)
     }

@@ -4,11 +4,18 @@ import Foundation
 public struct BusRideActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable, Sendable {
         public var routeNumber: String
+        public var boarding: String
         public var destination: String
         public var remainingStops: Int
 
-        public init(routeNumber: String, destination: String, remainingStops: Int) {
+        public init(
+            routeNumber: String,
+            boarding: String = "",
+            destination: String,
+            remainingStops: Int
+        ) {
             self.routeNumber = routeNumber
+            self.boarding = boarding
             self.destination = destination
             self.remainingStops = remainingStops
         }
@@ -39,6 +46,7 @@ public struct BusRideActivityAttributes: ActivityAttributes {
 public extension BusRideActivityAttributes.ContentState {
     static let prototype = BusRideActivityAttributes.ContentState(
         routeNumber: "3412",
+        boarding: "의왕역",
         destination: "인덕원역4호선.인덕원성당",
         remainingStops: 9
     )
