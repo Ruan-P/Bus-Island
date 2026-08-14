@@ -5,6 +5,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
     public var routeNumber: String
     public var boarding: String
     public var destination: String
+    public var boardingRemainingStops: Int
     public var remainingStops: Int
 
     public init(
@@ -12,12 +13,14 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         routeNumber: String,
         boarding: String = "",
         destination: String,
+        boardingRemainingStops: Int = 0,
         remainingStops: Int
     ) {
         self.id = id
         self.routeNumber = routeNumber
         self.boarding = boarding
         self.destination = destination
+        self.boardingRemainingStops = boardingRemainingStops
         self.remainingStops = remainingStops
     }
 
@@ -26,6 +29,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
             routeNumber: routeNumber,
             boarding: boarding,
             destination: destination,
+            boardingRemainingStops: boardingRemainingStops,
             remainingStops: remainingStops
         )
     }

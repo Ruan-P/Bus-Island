@@ -17,18 +17,26 @@ final class GbisRideTracker {
 
     func makeInitialSnapshot(from selection: GbisRideSelection) async throws -> BusRideSnapshot {
         self.selection = selection
-        let remaining = try await client.remainingStops(
+        let city = Self.cityCode(for: selection.boardingStation)
+        async let boardingLeft = client.remainingStops(
+            routeId: selection.route.routeId,
+            stationId: selection.boardingStation.stationId,
+            destinationSeq: 0,
+            cityCode: city
+        )
+        async let alightingLeft = client.remainingStops(
             routeId: selection.route.routeId,
             stationId: selection.destination.stationId,
             destinationSeq: selection.destination.stationSeq,
-            cityCode: Self.cityCode(for: selection.boardingStation)
+            cityCode: city
         )
-        let snapshot = BusRideSnapshot(
+        let snapshot = try await BusRideSnapshot(
             id: selection.rideID,
             routeNumber: selection.route.routeName,
             boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
-            remainingStops: remaining
+            boardingRemainingStops: boardingLeft,
+            remainingStops: alightingLeft
         )
         latestSnapshot = snapshot
         return snapshot
@@ -38,18 +46,26 @@ final class GbisRideTracker {
         guard let selection else {
             throw GbisAPIError.emptyResult
         }
-        let remaining = try await client.remainingStops(
+        let city = Self.cityCode(for: selection.boardingStation)
+        async let boardingLeft = client.remainingStops(
+            routeId: selection.route.routeId,
+            stationId: selection.boardingStation.stationId,
+            destinationSeq: 0,
+            cityCode: city
+        )
+        async let alightingLeft = client.remainingStops(
             routeId: selection.route.routeId,
             stationId: selection.destination.stationId,
             destinationSeq: selection.destination.stationSeq,
-            cityCode: Self.cityCode(for: selection.boardingStation)
+            cityCode: city
         )
-        let snapshot = BusRideSnapshot(
+        let snapshot = try await BusRideSnapshot(
             id: selection.rideID,
             routeNumber: selection.route.routeName,
             boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
-            remainingStops: remaining
+            boardingRemainingStops: boardingLeft,
+            remainingStops: alightingLeft
         )
         latestSnapshot = snapshot
         return snapshot

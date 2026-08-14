@@ -33,7 +33,7 @@ final class DebugLogStore {
     private let maxLines = 300
 
     private init() {
-        append("debug console ready · build 16")
+        append("debug console ready · build 17")
     }
 
     var joinedText: String {

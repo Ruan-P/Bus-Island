@@ -12,7 +12,7 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 16")
+                        Text("BI-GBIS v1.1 build 17")
                             .font(.title2.bold())
                         Text(viewModel.keyStatusText)
                             .font(.caption)
@@ -91,11 +91,63 @@ struct ContentView: View {
     }
 
     private var tripSummarySection: some View {
-        Section("이번 탑승") {
-            LabeledContent("노선", value: viewModel.selectedRoute?.routeName ?? "미선택")
-            LabeledContent("승차", value: viewModel.selectedStation?.stationName ?? "미선택")
-            LabeledContent("하차", value: viewModel.selectedDestination?.stationName ?? "미선택")
+        Section {
+            HStack(spacing: 10) {
+                tripChip(
+                    title: "노선",
+                    value: viewModel.selectedRoute?.routeName ?? "미선택",
+                    systemImage: "bus.fill",
+                    tint: .indigo
+                )
+                tripChip(
+                    title: "승차",
+                    value: viewModel.selectedStation?.stationName ?? "미선택",
+                    count: viewModel.snapshot?.boardingRemainingStops,
+                    systemImage: "figure.walk",
+                    tint: .cyan
+                )
+                tripChip(
+                    title: "하차",
+                    value: viewModel.selectedDestination?.stationName ?? "미선택",
+                    count: viewModel.snapshot?.remainingStops,
+                    systemImage: "flag.fill",
+                    tint: .orange
+                )
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+            .listRowBackground(Color.clear)
+        } header: {
+            Text("이번 탑승")
         }
+    }
+
+    private func tripChip(
+        title: String,
+        value: String,
+        count: Int? = nil,
+        systemImage: String,
+        tint: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                Text(title)
+                Spacer(minLength: 0)
+                if let count {
+                    Text("\(count)")
+                        .font(.headline.bold().monospacedDigit())
+                }
+            }
+            .font(.caption.weight(.semibold))
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(tint)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var findBoardingSection: some View {
@@ -244,9 +296,8 @@ struct ContentView: View {
         Section("알림") {
             if let snapshot = viewModel.snapshot {
                 LabeledContent("노선", value: snapshot.routeNumber)
-                LabeledContent("승차", value: snapshot.boarding)
-                LabeledContent("하차", value: snapshot.destination)
-                LabeledContent("남은 정거장", value: "\(snapshot.remainingStops)")
+                LabeledContent("승차까지", value: "\(snapshot.boardingRemainingStops)정거장")
+                LabeledContent("하차까지", value: "\(snapshot.remainingStops)정거장")
             }
 
             Button {
@@ -428,6 +479,7 @@ final class BusRideViewModel {
                 routeNumber: route.routeName,
                 boarding: station.stationName,
                 destination: stop.stationName,
+                boardingRemainingStops: 0,
                 remainingStops: max(0, stop.stationSeq - boardingSeq)
             )
         }
