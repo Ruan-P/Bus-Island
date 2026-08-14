@@ -87,25 +87,27 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Active Tracking Hero Card
+    // MARK: - Active Tracking Hero Card (2-Phase)
     private var activeTrackingHeroCard: some View {
         VStack(spacing: 16) {
+            let isOnBoard = viewModel.snapshot?.isOnBoard ?? true
+
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(Color.green)
+                            .fill(isOnBoard ? Color.green : Color.teal)
                             .frame(width: 8, height: 8)
-                        Text("실시간 Dynamic Island 활성화됨")
+                        Text(isOnBoard ? "하차지 이동 중 · Island 활성" : "승차 대기 중 · Island 활성")
                             .font(.caption.bold())
-                            .foregroundStyle(.green)
+                            .foregroundStyle(isOnBoard ? Color.green : Color.teal)
                     }
 
                     if let route = viewModel.selectedRoute {
                         HStack(spacing: 6) {
                             Image(systemName: "bus.fill")
                                 .font(.title3)
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(isOnBoard ? .blue : .teal)
                             Text(route.routeName)
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                         }
@@ -117,16 +119,20 @@ struct ContentView: View {
                 if let snapshot = viewModel.snapshot {
                     VStack(alignment: .trailing, spacing: 0) {
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text("\(snapshot.remainingStops)")
+                            Text("\(snapshot.activeRemainingStops)")
                                 .font(.system(size: 32, weight: .black, design: .rounded))
-                                .foregroundStyle(snapshot.remainingStops <= 1 ? Color.red : Color.orange)
-                            Text("정거장")
+                                .foregroundStyle(
+                                    isOnBoard
+                                        ? (snapshot.remainingStops <= 1 ? Color.red : Color.orange)
+                                        : (snapshot.boardingRemainingStops <= 1 ? Color.orange : Color.teal)
+                                )
+                            Text(isOnBoard ? "정거장 남음" : "정거장 전")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                         }
-                        Text("하차까지 남음")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                        Text(isOnBoard ? "하차 정류장까지" : "승차 정류장까지")
+                            .font(.caption2.bold())
+                            .foregroundStyle(isOnBoard ? Color.orange : Color.teal)
                     }
                 }
             }
@@ -135,11 +141,12 @@ struct ContentView: View {
                 VStack(spacing: 8) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("승차")
+                            Text("승차 (출발)")
                                 .font(.caption2.bold())
                                 .foregroundStyle(.teal)
                             Text(snapshot.boarding.isEmpty ? "-" : snapshot.boarding)
-                                .font(.subheadline.bold())
+                                .font(.subheadline.weight(isOnBoard ? .regular : .bold))
+                                .foregroundStyle(isOnBoard ? Color.secondary : Color.primary)
                                 .lineLimit(1)
                         }
                         Spacer()
@@ -148,15 +155,33 @@ struct ContentView: View {
                             .foregroundStyle(.tertiary)
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text("하차")
+                            Text("하차 (도착)")
                                 .font(.caption2.bold())
-                                .foregroundStyle(.red)
+                                .foregroundStyle(.orange)
                             Text(snapshot.destination.isEmpty ? "-" : snapshot.destination)
-                                .font(.subheadline.bold())
+                                .font(.subheadline.weight(isOnBoard ? .bold : .regular))
+                                .foregroundStyle(isOnBoard ? Color.primary : Color.secondary)
                                 .lineLimit(1)
                         }
                     }
                     .padding(.horizontal, 4)
+                }
+            }
+
+            // Quick Transition Action (When waiting to board)
+            if !isOnBoard {
+                Button {
+                    Task { await viewModel.markAsBoarded() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "figure.walk.arrival")
+                        Text("지금 버스에 탑승함 (하차 알림으로 전환)")
+                            .font(.subheadline.bold())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .foregroundStyle(.white)
+                    .background(Color.blue, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
 
@@ -612,6 +637,11 @@ final class BusRideViewModel {
         if !hasAPIKey { return "인증키 필요" }
         if !activitiesEnabled { return "Live Activities 꺼짐" }
         if isActivityRunning {
+            if let snapshot {
+                return snapshot.isOnBoard
+                    ? "하차까지 \(snapshot.remainingStops)정거장"
+                    : "승차까지 \(snapshot.boardingRemainingStops)정거장"
+            }
             return "실시간 안내 중"
         }
         if selectedDestination != nil { return "시작 준비 완료" }
@@ -781,6 +811,15 @@ final class BusRideViewModel {
                     self?.errorMessage = error.localizedDescription
                 }
             )
+        }
+    }
+
+    func markAsBoarded() async {
+        await run {
+            if let updated = tracker.markAsBoarded() {
+                try await activityService.update(with: updated)
+                snapshot = updated
+            }
         }
     }
 

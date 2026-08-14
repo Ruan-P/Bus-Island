@@ -24,6 +24,14 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         self.remainingStops = remainingStops
     }
 
+    public var isOnBoard: Bool {
+        boardingRemainingStops <= 0
+    }
+
+    public var activeRemainingStops: Int {
+        isOnBoard ? remainingStops : boardingRemainingStops
+    }
+
     public var activityState: BusRideActivityAttributes.ContentState {
         .init(
             routeNumber: routeNumber,
@@ -39,6 +47,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         routeNumber: "3412",
         boarding: "의왕역",
         destination: "사당역",
-        remainingStops: 4
+        boardingRemainingStops: 2,
+        remainingStops: 6
     )
 }
