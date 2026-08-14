@@ -85,7 +85,8 @@ final class GbisRideTracker {
             boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
             boardingRemainingStops: boardingStops,
-            remainingStops: alightingStops
+            remainingStops: alightingStops,
+            totalRideStops: seqDiff
         )
         latestSnapshot = snapshot
         AppLog.log(

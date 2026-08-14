@@ -60,44 +60,10 @@ struct BusRideLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 6) {
-                        // Progress line
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(RideTheme.boarding)
-                                .frame(width: 6, height: 6)
-
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.white.opacity(0.15))
-                                    .frame(height: 3)
-
-                                let progress: Double = {
-                                    if !context.state.isOnBoard {
-                                        return 0.25
-                                    } else {
-                                        let total = max(1, context.state.remainingStops + 1)
-                                        return min(1.0, max(0.4, 1.0 - (Double(context.state.remainingStops) / Double(total))))
-                                    }
-                                }()
-
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [RideTheme.boarding, context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: max(16, CGFloat(progress) * 160), height: 3)
-                            }
-
-                            Circle()
-                                .fill(RideTheme.destination)
-                                .frame(width: 6, height: 6)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
+                    VStack(spacing: 8) {
+                        // Dynamic Journey Progress Bar
+                        journeyProgressBar(state: context.state)
+                            .padding(.horizontal, 4)
 
                         // 2 Stop rows: 한 줄씩 승차 / 하차
                         stopRow(
@@ -149,6 +115,55 @@ struct BusRideLiveActivity: Widget {
                 }
             }
             .keylineTint(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+        }
+    }
+
+    // MARK: - Dynamic Journey Progress Bar
+    @ViewBuilder
+    private func journeyProgressBar(state: BusRideActivityAttributes.ContentState) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(RideTheme.boarding)
+                .frame(width: 6, height: 6)
+
+            GeometryReader { geo in
+                let totalWidth = geo.size.width
+                let currentProgress = CGFloat(state.progress)
+                let activeWidth = max(8, min(totalWidth, totalWidth * currentProgress))
+
+                ZStack(alignment: .leading) {
+                    // Background track
+                    Capsule()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(height: 4)
+
+                    // Active filled bar
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: state.isOnBoard
+                                    ? [RideTheme.boarding, RideTheme.accent]
+                                    : [RideTheme.boarding.opacity(0.7), RideTheme.boarding],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: activeWidth, height: 4)
+
+                    // Moving Bus Indicator Head
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: Color.black.opacity(0.4), radius: 2, x: 0, y: 1)
+                        .offset(x: max(0, activeWidth - 4))
+                }
+                .frame(maxHeight: .infinity, alignment: .center)
+            }
+            .frame(height: 10)
+
+            Circle()
+                .fill(RideTheme.destination)
+                .frame(width: 6, height: 6)
         }
     }
 
@@ -225,6 +240,10 @@ struct BusRideLiveActivity: Widget {
                         .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                 }
             }
+
+            // Realtime Progress Bar in Lock Screen
+            journeyProgressBar(state: state)
+                .padding(.horizontal, 2)
 
             Divider()
                 .overlay(Color.white.opacity(0.12))

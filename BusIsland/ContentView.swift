@@ -812,13 +812,15 @@ final class BusRideViewModel {
         selectedDestination = stop
         if let station = selectedStation, let route = selectedRoute {
             let boardingSeq = routeStations.first(where: { $0.stationId == station.stationId })?.stationSeq ?? 0
+            let diff = max(1, stop.stationSeq - boardingSeq)
             snapshot = BusRideSnapshot(
                 id: "\(route.routeId)-\(station.stationId)-\(stop.stationId)",
                 routeNumber: route.routeName,
                 boarding: station.stationName,
                 destination: stop.stationName,
                 boardingRemainingStops: 0,
-                remainingStops: max(0, stop.stationSeq - boardingSeq)
+                remainingStops: diff,
+                totalRideStops: diff
             )
         }
     }

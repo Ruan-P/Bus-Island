@@ -10,19 +10,23 @@ public struct BusRideActivityAttributes: ActivityAttributes {
         public var boardingRemainingStops: Int
         /// Stops until the bus reaches the destination/alighting stop.
         public var remainingStops: Int
+        /// Total stop count between boarding and destination (for accurate progress calculation).
+        public var totalRideStops: Int
 
         public init(
             routeNumber: String,
             boarding: String = "",
             destination: String,
             boardingRemainingStops: Int = 0,
-            remainingStops: Int
+            remainingStops: Int,
+            totalRideStops: Int = 0
         ) {
             self.routeNumber = routeNumber
             self.boarding = boarding
             self.destination = destination
             self.boardingRemainingStops = boardingRemainingStops
             self.remainingStops = remainingStops
+            self.totalRideStops = totalRideStops
         }
 
         /// Whether the user has boarded the bus and is heading towards the destination.
@@ -33,6 +37,23 @@ public struct BusRideActivityAttributes: ActivityAttributes {
         /// The primary prominent count to display based on current phase.
         public var activeRemainingStops: Int {
             isOnBoard ? remainingStops : boardingRemainingStops
+        }
+
+        /// Dynamic journey progress from 0.0 (far away) to 1.0 (arrived at destination).
+        public var progress: Double {
+            if !isOnBoard {
+                // Phase 1: Waiting for bus (0.08 ~ 0.45)
+                // As boardingRemainingStops decreases from e.g. 5 to 0, progress smoothly increases.
+                let stops = max(0, boardingRemainingStops)
+                let factor = max(0.0, 1.0 - (Double(stops) / max(5.0, Double(stops + 1))))
+                return min(0.45, max(0.08, 0.08 + factor * 0.37))
+            } else {
+                // Phase 2: On board heading to destination (0.50 ~ 1.0)
+                let total = max(1, totalRideStops > 0 ? totalRideStops : remainingStops + 1)
+                let completed = max(0, total - remainingStops)
+                let ridingFactor = min(1.0, max(0.0, Double(completed) / Double(total)))
+                return min(1.0, max(0.50, 0.50 + ridingFactor * 0.50))
+            }
         }
 
         /// Short phase indicator title.
@@ -72,7 +93,8 @@ public extension BusRideActivityAttributes.ContentState {
         boarding: "의왕역",
         destination: "인덕원역4호선",
         boardingRemainingStops: 3,
-        remainingStops: 8
+        remainingStops: 8,
+        totalRideStops: 8
     )
 
     static let prototypeRiding = BusRideActivityAttributes.ContentState(
@@ -80,6 +102,7 @@ public extension BusRideActivityAttributes.ContentState {
         boarding: "의왕역",
         destination: "인덕원역4호선",
         boardingRemainingStops: 0,
-        remainingStops: 3
+        remainingStops: 3,
+        totalRideStops: 8
     )
 }

@@ -7,6 +7,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
     public var destination: String
     public var boardingRemainingStops: Int
     public var remainingStops: Int
+    public var totalRideStops: Int
 
     public init(
         id: String = UUID().uuidString,
@@ -14,7 +15,8 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         boarding: String = "",
         destination: String,
         boardingRemainingStops: Int = 0,
-        remainingStops: Int
+        remainingStops: Int,
+        totalRideStops: Int = 0
     ) {
         self.id = id
         self.routeNumber = routeNumber
@@ -22,6 +24,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         self.destination = destination
         self.boardingRemainingStops = boardingRemainingStops
         self.remainingStops = remainingStops
+        self.totalRideStops = totalRideStops
     }
 
     public var isOnBoard: Bool {
@@ -38,7 +41,8 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
             boarding: boarding,
             destination: destination,
             boardingRemainingStops: boardingRemainingStops,
-            remainingStops: remainingStops
+            remainingStops: remainingStops,
+            totalRideStops: totalRideStops
         )
     }
 
@@ -48,6 +52,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         boarding: "의왕역",
         destination: "사당역",
         boardingRemainingStops: 2,
-        remainingStops: 6
+        remainingStops: 6,
+        totalRideStops: 8
     )
 }
