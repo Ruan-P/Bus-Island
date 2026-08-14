@@ -4,58 +4,56 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = BusRideViewModel()
-    @State private var debugLog = DebugLogStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 17")
-                            .font(.title2.bold())
-                        Text(viewModel.keyStatusText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Label("API 키 설정", systemImage: "key.fill")
+            ScrollView {
+                VStack(spacing: 18) {
+                    // MARK: - Live Active Hero Card (When Tracking)
+                    if viewModel.isActivityRunning {
+                        activeTrackingHeroCard
                     }
 
-                    NavigationLink {
-                        DebugConsoleView()
-                    } label: {
-                        Label("디버그 콘솔 (\(debugLog.lines.count))", systemImage: "text.alignleft")
+                    // MARK: - Selected Route & Stations Journey Summary Card
+                    journeySummaryCard
+
+                    // MARK: - Step 1: Bus Route Selection
+                    routeSelectionCard
+
+                    // MARK: - Step 2: Boarding Stop Selection
+                    if viewModel.selectedRoute != nil {
+                        boardingSelectionCard
+                    }
+
+                    // MARK: - Step 3: Alighting Stop Selection
+                    if viewModel.selectedRoute != nil && viewModel.selectedStation != nil {
+                        destinationSelectionCard
+                    }
+
+                    // MARK: - Action Section (Start Live Activity)
+                    if !viewModel.isActivityRunning {
+                        actionButtonCard
                     }
                 }
-
-                statusSection
-                tripSummarySection
-                findBoardingSection
-                routeSection
-                if viewModel.selectedRoute != nil {
-                    boardingPickSection
-                }
-                if viewModel.selectedStation != nil, viewModel.selectedRoute != nil {
-                    alightingPickSection
-                }
-                rideSection
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .navigationTitle("BI-GBIS")
+            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationTitle("BusIsland")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         SettingsView()
                     } label: {
                         Image(systemName: "gearshape.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.primary)
                     }
                 }
             }
-            .alert("오류", isPresented: Binding(
+            .alert("안내", isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
             )) {
@@ -65,9 +63,20 @@ struct ContentView: View {
             }
             .overlay {
                 if viewModel.isBusy {
-                    ProgressView()
+                    ZStack {
+                        Color.black.opacity(0.2)
+                            .ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .tint(.white)
+                            Text("정보를 불러오는 중...")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.white)
+                        }
                         .padding(20)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    }
                 }
             }
             .task { viewModel.refreshStatus() }
@@ -78,147 +87,237 @@ struct ContentView: View {
         }
     }
 
-    private var statusSection: some View {
-        Section("상태") {
+    // MARK: - Active Tracking Hero Card
+    private var activeTrackingHeroCard: some View {
+        VStack(spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                        Text("실시간 Dynamic Island 활성화됨")
+                            .font(.caption.bold())
+                            .foregroundStyle(.green)
+                    }
+
+                    if let route = viewModel.selectedRoute {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bus.fill")
+                                .font(.title3)
+                                .foregroundStyle(.blue)
+                            Text(route.routeName)
+                                .font(.system(size: 24, weight: .black, design: .rounded))
+                        }
+                    }
+                }
+
+                Spacer()
+
+                if let snapshot = viewModel.snapshot {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        HStack(alignment: .lastTextBaseline, spacing: 2) {
+                            Text("\(snapshot.remainingStops)")
+                                .font(.system(size: 32, weight: .black, design: .rounded))
+                                .foregroundStyle(snapshot.remainingStops <= 1 ? Color.red : Color.orange)
+                            Text("정거장")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("하차까지 남음")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if let snapshot = viewModel.snapshot {
+                VStack(spacing: 8) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("승차")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.teal)
+                            Text(snapshot.boarding.isEmpty ? "-" : snapshot.boarding)
+                                .font(.subheadline.bold())
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("하차")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.red)
+                            Text(snapshot.destination.isEmpty ? "-" : snapshot.destination)
+                                .font(.subheadline.bold())
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    Task { await viewModel.refreshNow() }
+                } label: {
+                    Label("지금 갱신", systemImage: "arrow.clockwise")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.bordered)
+                .tint(.blue)
+
+                Button(role: .destructive) {
+                    Task { await viewModel.endTracking() }
+                } label: {
+                    Label("알림 종료", systemImage: "xmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+            }
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+        )
+    }
+
+    // MARK: - Journey Summary Card
+    private var journeySummaryCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Circle()
-                    .fill(viewModel.isActivityRunning ? Color.green : Color.secondary)
-                    .frame(width: 10, height: 10)
+                Text("나의 여정")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
                 Text(viewModel.statusText)
-                    .font(.subheadline)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(viewModel.isActivityRunning ? .green : .secondary)
             }
-        }
-    }
 
-    private var tripSummarySection: some View {
-        Section {
-            HStack(spacing: 10) {
-                tripChip(
+            HStack(spacing: 8) {
+                journeyChip(
                     title: "노선",
-                    value: viewModel.selectedRoute?.routeName ?? "미선택",
-                    systemImage: "bus.fill",
-                    tint: .indigo
+                    value: viewModel.selectedRoute?.routeName ?? "선택 필요",
+                    icon: "bus.fill",
+                    color: .blue,
+                    isSelected: viewModel.selectedRoute != nil
                 )
-                tripChip(
+
+                journeyChip(
                     title: "승차",
-                    value: viewModel.selectedStation?.stationName ?? "미선택",
-                    count: viewModel.snapshot?.boardingRemainingStops,
-                    systemImage: "figure.walk",
-                    tint: .cyan
+                    value: viewModel.selectedStation?.stationName ?? "선택 필요",
+                    icon: "figure.walk",
+                    color: .teal,
+                    isSelected: viewModel.selectedStation != nil
                 )
-                tripChip(
+
+                journeyChip(
                     title: "하차",
-                    value: viewModel.selectedDestination?.stationName ?? "미선택",
-                    count: viewModel.snapshot?.remainingStops,
-                    systemImage: "flag.fill",
-                    tint: .orange
+                    value: viewModel.selectedDestination?.stationName ?? "선택 필요",
+                    icon: "flag.checkered",
+                    color: .orange,
+                    isSelected: viewModel.selectedDestination != nil
                 )
             }
-            .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
-            .listRowBackground(Color.clear)
-        } header: {
-            Text("이번 탑승")
         }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
     }
 
-    private func tripChip(
+    private func journeyChip(
         title: String,
         value: String,
-        count: Int? = nil,
-        systemImage: String,
-        tint: Color
+        icon: String,
+        color: Color,
+        isSelected: Bool
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 4) {
-                Image(systemName: systemImage)
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
                 Text(title)
-                Spacer(minLength: 0)
-                if let count {
-                    Text("\(count)")
-                        .font(.headline.bold().monospacedDigit())
-                }
+                    .font(.caption2.weight(.bold))
             }
-            .font(.caption.weight(.semibold))
+            .foregroundStyle(isSelected ? color : .secondary)
+
             Text(value)
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                .foregroundStyle(isSelected ? .primary : .secondary)
                 .lineLimit(2)
-                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 34, alignment: .topLeading)
         }
-        .foregroundStyle(tint)
         .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(isSelected ? color.opacity(0.12) : Color(uiColor: .tertiarySystemFill))
+        )
+        .frame(maxWidth: .infinity)
     }
 
-    private var findBoardingSection: some View {
-        Section {
-            Button {
-                Task { await viewModel.loadNearbyStations() }
-            } label: {
-                Label("GPS로 근처 승차 정류장 찾기", systemImage: "location.fill")
-            }
-            .disabled(viewModel.isBusy)
-
-            NavigationLink {
-                NearbyStationsMapView(viewModel: viewModel)
-            } label: {
-                Label("지도에서 승차 고르기", systemImage: "map.fill")
-            }
-
-            if !viewModel.nearbyStations.isEmpty {
-                NavigationLink {
-                    NearbyStationPickerView(
-                        stations: viewModel.nearbyStations,
-                        selectedID: viewModel.selectedStation?.stationId
-                    ) { station in
-                        Task { await viewModel.selectNearbyStation(station) }
-                    }
-                } label: {
-                    Label("근처 \(viewModel.nearbyStations.count)개에서 검색해 고르기", systemImage: "magnifyingglass")
-                }
-            }
-
+    // MARK: - Step 1: Route Selection Card
+    private var routeSelectionCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                TextField("정류장 이름 (예: 안양역)", text: $viewModel.stationNameQuery)
-                    .textInputAutocapitalization(.never)
-                    .submitLabel(.search)
-                    .onSubmit { Task { await viewModel.searchStationsByName() } }
-                Button("검색") {
-                    Task { await viewModel.searchStationsByName() }
+                Label("1. 노선 검색 및 선택", systemImage: "magnifyingglass")
+                    .font(.headline)
+                Spacer()
+                if let route = viewModel.selectedRoute {
+                    Text(route.routeName)
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.blue.opacity(0.15), in: Capsule())
+                        .foregroundStyle(.blue)
                 }
-                .disabled(viewModel.stationNameQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isBusy)
             }
 
-            if !viewModel.stationNameResults.isEmpty {
-                NavigationLink {
-                    NearbyStationPickerView(
-                        stations: viewModel.stationNameResults,
-                        selectedID: viewModel.selectedStation?.stationId
-                    ) { station in
-                        Task { await viewModel.selectNearbyStation(station) }
+            HStack(spacing: 8) {
+                HStack {
+                    Image(systemName: "bus")
+                        .foregroundStyle(.secondary)
+                    TextField("노선 번호 입력 (예: 1-1, 3412)", text: $viewModel.routeQuery)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.numbersAndPunctuation)
+                        .submitLabel(.search)
+                        .onSubmit { Task { await viewModel.searchRoutes() } }
+                    if !viewModel.routeQuery.isEmpty {
+                        Button {
+                            viewModel.routeQuery = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                } label: {
-                    Label("이름 검색 \(viewModel.stationNameResults.count)개에서 고르기", systemImage: "text.magnifyingglass")
                 }
-            }
-        } header: {
-            Text("1. 승차 정류장 찾기")
-        } footer: {
-            Text(viewModel.locationStatusMessage ?? "근처 목록은 검색 화면에서 고릅니다.")
-        }
-    }
+                .padding(10)
+                .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
 
-    private var routeSection: some View {
-        Section {
-            HStack {
-                TextField("노선 번호 (예: 1-1, 8)", text: $viewModel.routeQuery)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.numbersAndPunctuation)
-                    .submitLabel(.search)
-                    .onSubmit { Task { await viewModel.searchRoutes() } }
-                Button("검색") {
+                Button {
                     Task { await viewModel.searchRoutes() }
+                } label: {
+                    Text("검색")
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
                 .disabled(viewModel.routeQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isBusy)
             }
 
@@ -231,96 +330,232 @@ struct ContentView: View {
                         Task { await viewModel.selectRoute(route) }
                     }
                 } label: {
-                    Label("노선 \(viewModel.routeResults.count)개에서 검색해 고르기", systemImage: "bus")
+                    HStack {
+                        Image(systemName: "list.bullet.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("검색된 노선 목록 (\(viewModel.routeResults.count)개)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                            Text("목록에서 정확한 노선을 선택하세요")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(12)
+                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
-        } header: {
-            Text("2. 노선")
         }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
     }
 
-    private var boardingPickSection: some View {
-        Section {
+    // MARK: - Step 2: Boarding Stop Card
+    private var boardingSelectionCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label("2. 승차 정류장 선택", systemImage: "figure.walk")
+                    .font(.headline)
+                Spacer()
+                if let station = viewModel.selectedStation {
+                    Text(station.stationName)
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.teal.opacity(0.15), in: Capsule())
+                        .foregroundStyle(.teal)
+                }
+            }
+
+            // GPS Quick Nearest Action
             if viewModel.userCoordinate != nil {
                 Button {
                     viewModel.selectNearestBoarding()
                 } label: {
-                    Label("가장 가까운 정류장을 승차로", systemImage: "location.north.circle.fill")
+                    HStack {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 15))
+                        Text("내 위치에서 가장 가까운 정류장 자동 선택")
+                            .font(.subheadline.weight(.semibold))
+                        Spacer()
+                        Image(systemName: "sparkles")
+                    }
+                    .padding(12)
+                    .foregroundStyle(.white)
+                    .background(Color.teal, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
 
-            NavigationLink {
-                StopPickerView(
-                    title: "승차 정류장",
-                    roleLabel: "승차",
-                    stops: viewModel.routeStations,
-                    selectedID: viewModel.selectedStation?.stationId
-                ) { stop in
-                    viewModel.selectBoardingStop(stop)
+            // Quick Actions: Map & Route Stop List
+            HStack(spacing: 10) {
+                NavigationLink {
+                    NearbyStationsMapView(viewModel: viewModel)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "map.fill")
+                            .foregroundStyle(.teal)
+                        Text("지도에서 찾기")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
                 }
-            } label: {
-                Label("노선 정류장 \(viewModel.routeStations.count)개에서 승차 고르기", systemImage: "figure.walk")
+
+                NavigationLink {
+                    StopPickerView(
+                        title: "승차 정류장 선택",
+                        roleLabel: "노선 내 정류장",
+                        stops: viewModel.routeStations,
+                        selectedID: viewModel.selectedStation?.stationId
+                    ) { stop in
+                        viewModel.selectBoardingStop(stop)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "list.number")
+                            .foregroundStyle(.teal)
+                        Text("노선 전체 목록 (\(viewModel.routeStations.count))")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(viewModel.routeStations.isEmpty)
             }
-            .disabled(viewModel.routeStations.isEmpty)
-        } header: {
-            Text("3. 승차")
+
+            if let message = viewModel.locationStatusMessage {
+                Text(message)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 2)
+            }
         }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
     }
 
-    private var alightingPickSection: some View {
-        Section {
+    // MARK: - Step 3: Destination Card
+    private var destinationSelectionCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label("3. 하차 정류장 선택", systemImage: "flag.checkered")
+                    .font(.headline)
+                Spacer()
+                if let dest = viewModel.selectedDestination {
+                    Text(dest.stationName)
+                        .font(.caption.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.15), in: Capsule())
+                        .foregroundStyle(.orange)
+                }
+            }
+
             NavigationLink {
                 StopPickerView(
-                    title: "하차 정류장",
-                    roleLabel: "하차",
+                    title: "하차 정류장 선택",
+                    roleLabel: "하차 가능 정류장",
                     stops: viewModel.destinationCandidates,
                     selectedID: viewModel.selectedDestination?.id
                 ) { stop in
                     viewModel.selectDestination(stop)
                 }
             } label: {
-                Label("이후 정류장 \(viewModel.destinationCandidates.count)개에서 하차 고르기", systemImage: "flag.fill")
+                HStack {
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(viewModel.selectedDestination?.stationName ?? "하차할 정류장 선택하기")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        Text("승차 이후 정류장 \(viewModel.destinationCandidates.count)개 중 선택")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(14)
+                .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
             }
             .disabled(viewModel.destinationCandidates.isEmpty)
 
             if viewModel.destinationCandidates.isEmpty {
-                Text("승차 이후 하차 정류장이 없습니다. 승차를 앞쪽으로 바꿔 보세요.")
+                Text("승차 정류장 이후에 운행하는 하차 정류장이 없습니다.")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        } header: {
-            Text("4. 하차")
         }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
     }
 
-    private var rideSection: some View {
-        Section("알림") {
-            if let snapshot = viewModel.snapshot {
-                LabeledContent("노선", value: snapshot.routeNumber)
-                LabeledContent("승차까지", value: "\(snapshot.boardingRemainingStops)정거장")
-                LabeledContent("하차까지", value: "\(snapshot.remainingStops)정거장")
-            }
-
+    // MARK: - Action Button Card
+    private var actionButtonCard: some View {
+        VStack(spacing: 8) {
             Button {
                 Task { await viewModel.startTracking() }
             } label: {
-                Label("Live Activity 시작", systemImage: "dot.radiowaves.left.and.right")
+                HStack(spacing: 8) {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.headline)
+                    Text("Dynamic Island 알림 시작")
+                        .font(.headline.weight(.bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .foregroundStyle(.white)
+                .background(
+                    viewModel.canStartTracking
+                        ? AnyShapeStyle(LinearGradient(colors: [.blue, Color(red: 0.1, green: 0.4, blue: 0.9)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        : AnyShapeStyle(Color.gray.opacity(0.4)),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
             }
             .disabled(!viewModel.canStartTracking || viewModel.isBusy)
 
-            Button {
-                Task { await viewModel.refreshNow() }
-            } label: {
-                Label("지금 갱신", systemImage: "arrow.clockwise")
+            if !viewModel.canStartTracking {
+                Text(startGuideMessage)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-            .disabled(!viewModel.isActivityRunning || viewModel.isBusy)
-
-            Button(role: .destructive) {
-                Task { await viewModel.endTracking() }
-            } label: {
-                Label("알림 종료", systemImage: "xmark.circle")
-            }
-            .disabled(!viewModel.isActivityRunning || viewModel.isBusy)
         }
+        .padding(.top, 6)
+    }
+
+    private var startGuideMessage: String {
+        if !viewModel.hasAPIKey { return "API 키가 등록되어 있지 않습니다. 설정에서 키를 확인하세요." }
+        if !viewModel.activitiesEnabled { return "기기 설정에서 Live Activities를 허용해 주세요." }
+        if viewModel.selectedRoute == nil { return "1단계에서 노선을 검색하여 선택해 주세요." }
+        if viewModel.selectedStation == nil { return "2단계에서 승차 정류장을 선택해 주세요." }
+        if viewModel.selectedDestination == nil { return "3단계에서 하차 정류장을 선택해 주세요." }
+        return "알림을 시작할 준비가 되었습니다."
     }
 }
 
@@ -370,19 +605,19 @@ final class BusRideViewModel {
     }
 
     var keyStatusText: String {
-        keyStore.isUsingBakedDefault ? "API 키: 빌드 기본키" : "API 키: 사용자 저장키"
+        keyStore.isUsingBakedDefault ? "API 키: 기본키" : "API 키: 사용자 저장키"
     }
 
     var statusText: String {
-        if !hasAPIKey { return "인증키 없음" }
-        if !activitiesEnabled { return "Live Activities 비활성화" }
+        if !hasAPIKey { return "인증키 필요" }
+        if !activitiesEnabled { return "Live Activities 꺼짐" }
         if isActivityRunning {
-            return "Island 표시 중 · \(snapshot.map { "\($0.remainingStops)정거장" } ?? "")"
+            return "실시간 안내 중"
         }
-        if selectedDestination != nil { return "하차 선택됨 — 시작 가능" }
-        if selectedStation != nil { return "하차 정류장을 고르세요" }
-        if selectedRoute != nil { return "승차 정류장을 고르세요" }
-        return "승차 정류장 또는 노선을 찾으세요"
+        if selectedDestination != nil { return "시작 준비 완료" }
+        if selectedStation != nil { return "하차지 선택 대기" }
+        if selectedRoute != nil { return "승차지 선택 대기" }
+        return "노선 검색 필요"
     }
 
     func refreshStatus() {
@@ -415,7 +650,6 @@ final class BusRideViewModel {
             AppLog.log("selectRoute \(route.routeName) id=\(route.routeId)")
             selectedRoute = route
             selectedDestination = nil
-            // Keep boarding if it exists on this route; else clear.
             routeStations = try await client.stations(on: route.routeId)
             if let boarding = selectedStation,
                !routeStations.contains(where: { $0.stationId == boarding.stationId }) {
@@ -450,7 +684,7 @@ final class BusRideViewModel {
         .min(by: { $0.1 < $1.1 })
         if let nearest {
             selectBoardingStop(nearest.0)
-            locationStatusMessage = "탑승: \(nearest.0.stationName) (\(nearest.1)m)"
+            locationStatusMessage = "선택됨: \(nearest.0.stationName) (\(nearest.1)m)"
         }
     }
 
@@ -487,7 +721,7 @@ final class BusRideViewModel {
 
     func requestLocationPermissionOnly() async {
         await run {
-            locationStatusMessage = "위치 권한 요청 중…"
+            locationStatusMessage = "위치 권한 확인 중..."
             _ = try await locationService.ensureWhenInUseAuthorization()
             locationStatusMessage = locationService.isAuthorized
                 ? "위치 권한 허용됨"
@@ -497,16 +731,16 @@ final class BusRideViewModel {
 
     func loadNearbyStations() async {
         await run {
-            locationStatusMessage = "위치 확인 중…"
+            locationStatusMessage = "내 위치 파악 중..."
             let location = try await locationService.currentLocation()
             userCoordinate = location.coordinate
-            locationStatusMessage = "근처 정류장 조회 중 (TAGO 1613000)…"
+            locationStatusMessage = "근처 정류장 검색 중..."
             let results = try await client.nearbyStations(
                 longitude: location.coordinate.longitude,
                 latitude: location.coordinate.latitude
             )
             nearbyStations = results
-            locationStatusMessage = "근처 \(results.count)개 · TAGO 1613000"
+            locationStatusMessage = "근처 \(results.count)개 정류장 발견"
             AppLog.log("nearby loaded \(results.count) first=\(results.first.map { "\($0.stationName)/\($0.stationId)" } ?? "-")")
         }
     }
@@ -569,10 +803,6 @@ final class BusRideViewModel {
         selectedRoute = route
         selectedDestination = nil
         routeStations = try await client.stations(on: route.routeId)
-        if let boarding = selectedStation,
-           !routeStations.contains(where: { $0.stationId == boarding.stationId }) {
-            // keep boarding from GPS even if not exact match list order
-        }
         if routeStations.isEmpty { throw GbisAPIError.emptyResult }
     }
 

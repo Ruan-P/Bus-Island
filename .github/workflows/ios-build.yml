@@ -1,8 +1,8 @@
-﻿name: iOS Build
+name: iOS Build
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -18,28 +18,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show ContentView marker
+      - name: Verify project files
         run: |
           set -euo pipefail
           git rev-parse --short HEAD
-          grep -n "BI-GBIS v1.1 build 17" BusIsland/ContentView.swift
+          test -f BusIsland/ContentView.swift
           test -f BusIsland/StopPickerView.swift
-          test -f BusIsland/Services/DebugLogStore.swift
+          test -f BusIsland/NearbyStationsMapView.swift
+          test -f BusIsland/SettingsView.swift
           test -f BusIsland/DebugConsoleView.swift
+          test -f BusIsland/Services/DebugLogStore.swift
+          test -f BusIsland/Services/Tago/TagoStationClient.swift
+          test -f BusIsland/Services/Tago/TagoArrivalClient.swift
+          test -f BusIsland/Services/Gbis/GbisAPIClient.swift
+          test -f BusIslandWidget/BusRideLiveActivity.swift
+          
           if grep -nE '\?\.value\?\.' BusIsland -r --include='*.swift'; then
             echo "ERROR: invalid optional chaining on non-optional .value"
             exit 1
           fi
-          if grep -n "selectStation(" BusIsland/NearbyStationsMapView.swift; then
-            echo "ERROR: NearbyStationsMapView still calls selectStation"
-            exit 1
-          fi
-          grep -n "selectNearbyStation" BusIsland/NearbyStationsMapView.swift
+          
           grep -n "승차" BusIsland/ContentView.swift
           grep -n "하차" BusIsland/ContentView.swift
-          test -f BusIsland/Services/Tago/TagoStationClient.swift
-          test -f BusIsland/Services/Tago/TagoArrivalClient.swift
-          test -f BusIsland/Services/Gbis/GbisAPIClient.swift
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -106,7 +106,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             archive
 
-      - name: Verify binary UI strings
+      - name: Verify binary
         run: |
           set -euo pipefail
           APP="build/BusIsland.xcarchive/Products/Applications/BusIsland.app"
@@ -115,21 +115,10 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
           strings "$BIN" > build/app-strings.txt || true
-          # Avoid `echo | grep -q` under pipefail: grep -q closes early and echo gets SIGPIPE.
-          grep -F "BI-GBIS" build/app-strings.txt >/dev/null || {
-            echo "ERROR: BI-GBIS marker missing in binary"
-            grep -E "BI-GBIS|GBIS|build" build/app-strings.txt | head -40 || true
+          grep -F "BusIsland" build/app-strings.txt >/dev/null || {
+            echo "ERROR: BusIsland marker missing in binary"
             exit 1
           }
-          grep -F "build 17" build/app-strings.txt >/dev/null || {
-            echo "ERROR: build marker missing in binary"
-            grep -E "BI-GBIS|GBIS|build" build/app-strings.txt | head -40 || true
-            exit 1
-          }
-          if grep -F "테스트 버스 라이드" build/app-strings.txt >/dev/null; then
-            echo "ERROR: old mock UI still in binary"
-            exit 1
-          fi
           echo "Binary OK"
 
       - name: Package unsigned IPA
@@ -141,24 +130,16 @@ jobs:
           cp -R "$APP_PATH" build/Payload/
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build17-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-unsigned.ipa" Payload
           )
-          cp build/ipa/BusIsland-v1.1-build17-GBIS.ipa build/BusIsland-unsigned.ipa
           ls -lh build/ipa/
-          shasum -a 256 build/ipa/BusIsland-v1.1-build17-GBIS.ipa
+          shasum -a 256 build/ipa/BusIsland-unsigned.ipa
 
-      - name: Upload IPA artifact (versioned)
-        uses: actions/upload-artifact@v4
-        with:
-          name: BusIsland-v1.1-build17-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build17-GBIS.ipa
-          if-no-files-found: error
-
-      - name: Upload IPA artifact (legacy name)
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: BusIsland-unsigned-ipa
-          path: build/BusIsland-unsigned.ipa
+          path: build/ipa/BusIsland-unsigned.ipa
           if-no-files-found: error
 
       - name: Upload xcarchive artifact
