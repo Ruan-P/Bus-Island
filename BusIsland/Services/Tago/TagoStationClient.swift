@@ -40,11 +40,24 @@ actor TagoStationClient {
         return Array(filtered.prefix(50))
     }
 
+    /// 좌표 기반 빠른 주변 정류소 조회 (TAGO getCrdntPrxmtSttnList — 1회 단일 호출).
     func nearbyStations(
         longitude: Double,
         latitude: Double,
-        radiusMeters: Int = 800
+        radiusMeters: Int = 1000
     ) async throws -> [GbisStation] {
+        // 1. Direct coordinate lookup (1 fast API request, ~0.2s)
+        do {
+            let directResults = try await fetchNearbyDirectly(longitude: longitude, latitude: latitude)
+            if !directResults.isEmpty {
+                AppLog.log("TAGO nearby direct hit: \(directResults.count) stations")
+                return Array(directResults.prefix(40))
+            }
+        } catch {
+            AppLog.log("TAGO direct nearby failed: \(error.localizedDescription)")
+        }
+
+        // 2. Fallback: Full cached stations scan
         let user = CLLocation(latitude: latitude, longitude: longitude)
         let all = try await loadAllStations()
 
@@ -67,11 +80,72 @@ actor TagoStationClient {
         }
 
         result.sort { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
-        AppLog.log("TAGO nearby lat=\(latitude) lon=\(longitude) hits=\(result.count) catalog=\(all.count)")
+        AppLog.log("TAGO nearby scan hits=\(result.count) catalog=\(all.count)")
         if result.isEmpty {
             throw GbisAPIError.emptyResult
         }
         return Array(result.prefix(40))
+    }
+
+    private func fetchNearbyDirectly(longitude: Double, latitude: Double) async throws -> [GbisStation] {
+        guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
+            throw GbisAPIError.missingServiceKey
+        }
+        guard let url = DataGoKrURL.make(
+            base: baseURL,
+            path: "getCrdntPrxmtSttnList",
+            query: [
+                "gpsLati": String(format: "%.6f", latitude),
+                "gpsLong": String(format: "%.6f", longitude),
+                "numOfRows": "50",
+                "pageNo": "1",
+                "_type": "json",
+            ],
+            serviceKey: serviceKey
+        ) else {
+            throw GbisAPIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 10
+
+        AppLog.log("TAGO GET getCrdntPrxmtSttnList lat=\(latitude) lon=\(longitude)")
+        let (data, response) = try await session.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        AppLog.log("TAGO HTTP \(status) getCrdntPrxmtSttnList \(AppLog.snippet(String(data: data, encoding: .utf8)))")
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
+        }
+
+        let root = try JSONDecoder().decode(TagoStationListRoot.self, from: data)
+        guard root.response.header.resultCode == "00" else {
+            throw GbisAPIError.apiMessage("TAGO 근접 정류소: \(root.response.header.resultMsg)")
+        }
+
+        let user = CLLocation(latitude: latitude, longitude: longitude)
+        var result: [GbisStation] = []
+        for row in root.response.body.rows {
+            guard let station = row.toDomain(regionName: nil) else { continue }
+            let distance: Int? = {
+                guard let lat = station.latitude, let lon = station.longitude else { return nil }
+                return Int(user.distance(from: CLLocation(latitude: lat, longitude: lon)))
+            }()
+            result.append(
+                GbisStation(
+                    stationId: station.stationId,
+                    stationName: station.stationName,
+                    mobileNo: station.mobileNo,
+                    regionName: station.regionName,
+                    longitude: station.longitude,
+                    latitude: station.latitude,
+                    distanceMeters: distance
+                )
+            )
+        }
+        result.sort { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
+        return result
     }
 
     private func loadAllStations() async throws -> [GbisStation] {
@@ -121,7 +195,6 @@ actor TagoStationClient {
         guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
             throw GbisAPIError.missingServiceKey
         }
-        // URLQueryItem에 미리 인코딩된 키를 넣으면 %가 한 번 더 인코딩되어 403이 난다.
         guard let url = DataGoKrURL.make(
             base: baseURL,
             path: "getSttnNoList",
