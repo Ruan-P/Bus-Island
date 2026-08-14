@@ -22,8 +22,14 @@
 	<true/>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>주변 버스 정류장을 찾고 하차 알림을 시작하기 위해 현재 위치가 필요합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>하차 알림이 켜져 있는 동안 앱이 백그라운드에서도 버스 위치를 갱신하려면 위치 접근이 필요합니다.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>NearbyStations</key>

@@ -864,6 +864,7 @@ final class BusRideViewModel {
                 boardingSeq: boardingSeq
             )
             await notifications.requestAuthorization()
+            await locationService.startRideBackgroundUpdates()
             let initial = try await tracker.makeInitialSnapshot(from: selection)
             try await activityService.start(with: initial)
             snapshot = initial
@@ -937,6 +938,7 @@ final class BusRideViewModel {
                 snapshot = updated
                 isActivityRunning = true
                 try? await Task.sleep(for: .seconds(8))
+                locationService.stopRideBackgroundUpdates()
                 await activityService.end()
                 tracker.reset()
                 isActivityRunning = false
@@ -954,6 +956,7 @@ final class BusRideViewModel {
     func endTracking() async {
         await run {
             notifications.clearRideNotifications()
+            locationService.stopRideBackgroundUpdates()
             tracker.reset()
             await activityService.end()
             isActivityRunning = false

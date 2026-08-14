@@ -31,6 +31,7 @@ public final class LocationService: NSObject {
     private let manager = CLLocationManager()
     private var locationContinuation: CheckedContinuation<CLLocation, Error>?
     private var authContinuation: CheckedContinuation<CLAuthorizationStatus, Never>?
+    private var isRideLocationActive = false
 
     public override init() {
         super.init()
@@ -105,6 +106,35 @@ public final class LocationService: NSObject {
                 }
             }
         }
+    }
+
+    /// Keeps the process alive in background while a Live Activity ride is running.
+    func startRideBackgroundUpdates() async {
+        _ = try? await ensureWhenInUseAuthorization()
+        if manager.authorizationStatus == .authorizedWhenInUse {
+            manager.requestAlwaysAuthorization()
+        }
+
+        manager.allowsBackgroundLocationUpdates = true
+        manager.showsBackgroundLocationIndicator = true
+        manager.pausesLocationUpdatesAutomatically = false
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.distanceFilter = 80
+        isRideLocationActive = true
+        manager.startUpdatingLocation()
+        AppLog.log("ride background location on status=\(manager.authorizationStatus.rawValue)")
+    }
+
+    func stopRideBackgroundUpdates() {
+        guard isRideLocationActive else { return }
+        isRideLocationActive = false
+        manager.stopUpdatingLocation()
+        manager.allowsBackgroundLocationUpdates = false
+        manager.showsBackgroundLocationIndicator = false
+        manager.pausesLocationUpdatesAutomatically = true
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        manager.distanceFilter = kCLDistanceFilterNone
+        AppLog.log("ride background location off")
     }
 }
 
