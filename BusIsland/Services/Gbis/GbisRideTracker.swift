@@ -56,8 +56,8 @@ final class GbisRideTracker {
     /// TAGO cityCode from boarding station region name (안양/의왕/군포, 실측).
     private static func cityCode(for station: GbisStation) -> Int? {
         guard let region = station.regionName else { return nil }
-        if region.contains("안양") { return 31170 }
-        if region.contains("의왕") { return 31180 }
+        if region.contains("안양") { return 31040 }
+        if region.contains("의왕") { return 31170 }
         if region.contains("군포") { return 31160 }
         return nil
     }

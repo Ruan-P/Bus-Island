@@ -16,8 +16,11 @@ enum GbisAPIError: Error, LocalizedError, Sendable {
         case .invalidURL:
             return "API 요청 URL을 만들 수 없습니다."
         case .httpStatus(let code, let body):
+            if code == 403 {
+                return "공공데이터포털 인증 실패 (HTTP 403). 키가 해당 서비스에 등록됐는지 확인하세요."
+            }
             if code >= 500 {
-                return "GBIS 버스 정보 서버 일시적 장애 (HTTP \(code)). 잠시 후 다시 시도해 주세요."
+                return "버스 정보 서버 일시적 장애 (HTTP \(code)). 잠시 후 다시 시도해 주세요."
             }
             if let body, !body.isEmpty {
                 let snippet = body.count > 160 ? String(body.prefix(160)) : body
