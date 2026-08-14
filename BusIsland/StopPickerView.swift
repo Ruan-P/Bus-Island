@@ -71,7 +71,7 @@ struct StopPickerView: View {
                                     // Sequence badge
                                     Text("\(stop.stationSeq)")
                                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        .foregroundStyle(isSelected ? .white : .secondary)
+                                        .foregroundStyle(isSelected ? Color.white : Color.secondary)
                                         .frame(width: 28, height: 28)
                                         .background(isSelected ? Color.blue : Color(uiColor: .tertiarySystemFill), in: Circle())
 
@@ -175,7 +175,7 @@ struct RoutePickerView: View {
                                 HStack(spacing: 14) {
                                     Image(systemName: "bus.fill")
                                         .font(.system(size: 15))
-                                        .foregroundStyle(isSelected ? .white : .blue)
+                                        .foregroundStyle(isSelected ? Color.white : Color.blue)
                                         .frame(width: 32, height: 32)
                                         .background(isSelected ? Color.blue : Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
 
@@ -279,7 +279,7 @@ struct NearbyStationPickerView: View {
                                 HStack(spacing: 14) {
                                     Image(systemName: "mappin.and.ellipse")
                                         .font(.system(size: 16))
-                                        .foregroundStyle(isSelected ? .white : .teal)
+                                        .foregroundStyle(isSelected ? Color.white : Color.teal)
                                         .frame(width: 32, height: 32)
                                         .background(isSelected ? Color.teal : Color.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
 

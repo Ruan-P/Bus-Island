@@ -202,7 +202,7 @@ struct ContentView: View {
                 Spacer()
                 Text(viewModel.statusText)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(viewModel.isActivityRunning ? .green : .secondary)
+                    .foregroundStyle(viewModel.isActivityRunning ? Color.green : Color.secondary)
             }
 
             HStack(spacing: 8) {
@@ -253,11 +253,11 @@ struct ContentView: View {
                 Text(title)
                     .font(.caption2.weight(.bold))
             }
-            .foregroundStyle(isSelected ? color : .secondary)
+            .foregroundStyle(isSelected ? color : Color.secondary)
 
             Text(value)
                 .font(.system(size: 13, weight: isSelected ? .bold : .medium))
-                .foregroundStyle(isSelected ? .primary : .secondary)
+                .foregroundStyle(isSelected ? Color.primary : Color.secondary)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: 34, alignment: .topLeading)

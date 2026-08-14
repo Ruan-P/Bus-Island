@@ -18,7 +18,7 @@ struct SettingsView: View {
                     Spacer()
                     Text(usingBaked ? "빌드 기본 키" : "사용자 지정 키")
                         .font(.subheadline)
-                        .foregroundStyle(usingBaked ? .secondary : .blue)
+                        .foregroundStyle(usingBaked ? Color.secondary : Color.blue)
                 }
 
                 SecureField("serviceKey 입력 (공공데이터포털)", text: $serviceKey)
