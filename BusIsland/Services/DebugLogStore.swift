@@ -1,10 +1,33 @@
 import Foundation
 import Observation
 
+enum AppLog {
+    static func log(_ message: String) {
+        Task { @MainActor in
+            DebugLogStore.shared.append(message)
+        }
+    }
+
+    static func redact(_ url: URL) -> String {
+        url.absoluteString.replacingOccurrences(
+            of: #"serviceKey=[^&]+"#,
+            with: "serviceKey=***",
+            options: .regularExpression
+        )
+    }
+
+    static func snippet(_ text: String?, limit: Int = 220) -> String {
+        guard let text, !text.isEmpty else { return "(empty)" }
+        let compact = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        if compact.count <= limit { return compact }
+        return String(compact.prefix(limit)) + "…"
+    }
+}
+
 @MainActor
 @Observable
 final class DebugLogStore {
-    nonisolated(unsafe) static let shared = DebugLogStore()
+    static let shared = DebugLogStore()
 
     private(set) var lines: [String] = []
     private let maxLines = 300
@@ -28,28 +51,6 @@ final class DebugLogStore {
     func clear() {
         lines.removeAll()
         append("cleared")
-    }
-
-    /// Safe to call from actors / background.
-    nonisolated func log(_ message: String) {
-        Task { @MainActor in
-            self.append(message)
-        }
-    }
-
-    static func redact(_ url: URL) -> String {
-        url.absoluteString.replacingOccurrences(
-            of: #"serviceKey=[^&]+"#,
-            with: "serviceKey=***",
-            options: .regularExpression
-        )
-    }
-
-    static func snippet(_ text: String?, limit: Int = 220) -> String {
-        guard let text, !text.isEmpty else { return "(empty)" }
-        let compact = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-        if compact.count <= limit { return compact }
-        return String(compact.prefix(limit)) + "…"
     }
 
     private static func timestamp() -> String {

@@ -43,10 +43,10 @@ actor TagoArrivalClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 15
 
-        DebugLogStore.shared.log("TAGO GET arrival node=\(nodeId) city=\(cityCode)")
+        AppLog.log("TAGO GET arrival node=\(nodeId) city=\(cityCode)")
         let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-        DebugLogStore.shared.log("TAGO HTTP \(status) arrival \(DebugLogStore.snippet(String(data: data, encoding: .utf8)))")
+        AppLog.log("TAGO HTTP \(status) arrival \(AppLog.snippet(String(data: data, encoding: .utf8)))")
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
         }

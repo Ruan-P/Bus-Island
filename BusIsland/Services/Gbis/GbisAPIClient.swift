@@ -89,7 +89,7 @@ actor GbisAPIClient {
 
     /// Routes currently arriving at a station (arrival list).
     func routes(at stationId: String) async throws -> [GbisRoute] {
-        DebugLogStore.shared.log("routes(at:) stationId=\(stationId)")
+        AppLog.log("routes(at:) stationId=\(stationId)")
         let body: GbisArrivalItemBody = try await get(
             path: "busarrivalservice/v2/getBusArrivalListv2",
             query: ["stationId": stationId]
@@ -111,7 +111,7 @@ actor GbisAPIClient {
                 )
             )
         }
-        DebugLogStore.shared.log("routes(at:) parsed=\(routes.count) rawItems=\(items.count)")
+        AppLog.log("routes(at:) parsed=\(routes.count) rawItems=\(items.count)")
         if routes.isEmpty { throw GbisAPIError.emptyResult }
         return routes
     }
@@ -201,7 +201,7 @@ actor GbisAPIClient {
         guard let url = URL(string: urlString) else {
             throw GbisAPIError.invalidURL
         }
-        DebugLogStore.shared.log("GBIS GET \(path) \(query)")
+        AppLog.log("GBIS GET \(path) \(query)")
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -215,7 +215,7 @@ actor GbisAPIClient {
                 let (data, response) = try await session.data(for: request)
                 let status = (response as? HTTPURLResponse)?.statusCode ?? -1
                 let bodyText = String(data: data, encoding: .utf8)
-                DebugLogStore.shared.log("GBIS HTTP \(status) \(path) \(DebugLogStore.snippet(bodyText))")
+                AppLog.log("GBIS HTTP \(status) \(path) \(AppLog.snippet(bodyText))")
                 if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
                     if http.statusCode >= 500 && attempts < 3 {
                         try? await Task.sleep(for: .milliseconds(800))

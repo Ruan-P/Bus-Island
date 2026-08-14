@@ -432,7 +432,7 @@ final class BusRideViewModel {
 
     func selectRoute(_ route: GbisRoute) async {
         await run {
-            DebugLogStore.shared.log("selectRoute \(route.routeName) id=\(route.routeId)")
+            AppLog.log("selectRoute \(route.routeName) id=\(route.routeId)")
             selectedRoute = route
             selectedDestination = nil
             // Keep boarding if it exists on this route; else clear.
@@ -441,7 +441,7 @@ final class BusRideViewModel {
                !routeStations.contains(where: { $0.stationId == boarding.stationId }) {
                 selectedStation = nil
             }
-            DebugLogStore.shared.log("selectRoute stations=\(routeStations.count) boardingKept=\(selectedStation != nil)")
+            AppLog.log("selectRoute stations=\(routeStations.count) boardingKept=\(selectedStation != nil)")
             if routeStations.isEmpty { throw GbisAPIError.emptyResult }
         }
     }
@@ -476,14 +476,14 @@ final class BusRideViewModel {
 
     func selectNearbyStation(_ station: GbisStation) async {
         await run {
-            DebugLogStore.shared.log("selectNearby \(station.stationName) id=\(station.stationId) region=\(station.regionName ?? "-")")
+            AppLog.log("selectNearby \(station.stationName) id=\(station.stationId) region=\(station.regionName ?? "-")")
             selectedStation = station
             selectedRoute = nil
             selectedDestination = nil
             routeStations = []
             let routes = try await client.routes(at: station.stationId)
             routeResults = routes
-            DebugLogStore.shared.log("selectNearby routes=\(routes.map(\.routeName).joined(separator: ","))")
+            AppLog.log("selectNearby routes=\(routes.map(\.routeName).joined(separator: ","))")
             if routes.count == 1 {
                 try await selectRouteInternal(routes[0])
             }
@@ -525,7 +525,7 @@ final class BusRideViewModel {
             )
             nearbyStations = results
             locationStatusMessage = "근처 \(results.count)개 · TAGO 1613000"
-            DebugLogStore.shared.log("nearby loaded \(results.count) first=\(results.first.map { "\($0.stationName)/\($0.stationId)" } ?? "-")")
+            AppLog.log("nearby loaded \(results.count) first=\(results.first.map { "\($0.stationName)/\($0.stationId)" } ?? "-")")
         }
     }
 
@@ -603,7 +603,7 @@ final class BusRideViewModel {
         do {
             try await work()
         } catch {
-            DebugLogStore.shared.log("ERROR \(error.localizedDescription)")
+            AppLog.log("ERROR \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
     }
