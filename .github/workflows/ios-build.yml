@@ -110,19 +110,19 @@ jobs:
           ls -la "$APP"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" || true
-          STRINGS=$(strings "$BIN" || true)
-          # Swift compiler may split long literals; verify stable fragments separately
-          echo "$STRINGS" | grep -q "BI-GBIS" || {
+          strings "$BIN" > build/app-strings.txt || true
+          # Avoid `echo | grep -q` under pipefail: grep -q closes early and echo gets SIGPIPE.
+          grep -F "BI-GBIS" build/app-strings.txt >/dev/null || {
             echo "ERROR: BI-GBIS marker missing in binary"
-            echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
+            grep -E "BI-GBIS|GBIS|build" build/app-strings.txt | head -40 || true
             exit 1
           }
-          echo "$STRINGS" | grep -q "build 13" || {
+          grep -F "build 13" build/app-strings.txt >/dev/null || {
             echo "ERROR: build marker missing in binary"
-            echo "$STRINGS" | grep -E "BI-GBIS|GBIS|build" | head -40
+            grep -E "BI-GBIS|GBIS|build" build/app-strings.txt | head -40 || true
             exit 1
           }
-          if echo "$STRINGS" | grep -q "테스트 버스 라이드"; then
+          if grep -F "테스트 버스 라이드" build/app-strings.txt >/dev/null; then
             echo "ERROR: old mock UI still in binary"
             exit 1
           fi
