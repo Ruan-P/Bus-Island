@@ -9,8 +9,10 @@ struct BusRideLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(spacing: 6) {
-                        Text("🚌")
+                    HStack(spacing: 4) {
+                        Image(systemName: "bus.fill")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
                         Text(context.state.routeNumber)
                             .font(.title3.bold())
                             .monospacedDigit()
@@ -18,71 +20,79 @@ struct BusRideLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.state.remainingStopsLabel)
-                        .font(.title3.bold())
-                        .monospacedDigit()
-                        .foregroundStyle(.orange)
-                }
-
-                DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.destination)
-                        .font(.headline)
-                        .lineLimit(1)
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text("\(context.state.remainingStops)")
+                            .font(.title2.bold())
+                            .monospacedDigit()
+                            .foregroundStyle(.orange)
+                        Text(context.state.remainingStopsUnit)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack {
-                        Label("하차 알림", systemImage: "bell.fill")
-                        Spacer()
-                        Text("남은 \(context.state.remainingStops) 정거장")
-                            .foregroundStyle(.secondary)
-                    }
-                    .font(.caption)
-                    .padding(.top, 4)
+                    Text(context.state.destination)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
                 }
             } compactLeading: {
-                Text("🚌 \(context.state.routeNumber)")
-                    .font(.caption.bold())
-                    .monospacedDigit()
+                HStack(spacing: 3) {
+                    Image(systemName: "bus.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    Text(context.state.routeNumber)
+                        .font(.caption.bold())
+                        .monospacedDigit()
+                }
             } compactTrailing: {
                 Text(context.state.compactTrailingText)
-                    .font(.caption2)
+                    .font(.caption.bold())
+                    .monospacedDigit()
+                    .foregroundStyle(.orange)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
             } minimal: {
-                Text(context.state.routeNumber)
+                Text(context.state.minimalDisplayText)
                     .font(.caption2.bold())
                     .monospacedDigit()
+                    .foregroundStyle(.orange)
             }
+            .keylineTint(.orange)
         }
     }
 
     @ViewBuilder
     private func lockScreenView(state: BusRideActivityAttributes.ContentState) -> some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("BusIsland", systemImage: "bus.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text("🚌 \(state.routeNumber)")
-                    .font(.title2.bold())
-                    .monospacedDigit()
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: "bus.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    Text(state.routeNumber)
+                        .font(.title2.bold())
+                        .monospacedDigit()
+                }
 
                 Text(state.destination)
-                    .font(.headline)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("남은 정거장")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 0) {
                 Text("\(state.remainingStops)")
                     .font(.largeTitle.bold())
                     .monospacedDigit()
                     .foregroundStyle(.orange)
+                Text(state.remainingStopsUnit)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()

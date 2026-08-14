@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse --short HEAD
-          grep -n "BI-GBIS v1.1 build 14" BusIsland/ContentView.swift
+          grep -n "BI-GBIS v1.1 build 15" BusIsland/ContentView.swift
           test -f BusIsland/Services/DebugLogStore.swift
           test -f BusIsland/DebugConsoleView.swift
           if grep -nE '\?\.value\?\.' BusIsland -r --include='*.swift'; then
@@ -119,7 +119,7 @@ jobs:
             grep -E "BI-GBIS|GBIS|build" build/app-strings.txt | head -40 || true
             exit 1
           }
-          grep -F "build 14" build/app-strings.txt >/dev/null || {
+          grep -F "build 15" build/app-strings.txt >/dev/null || {
             echo "ERROR: build marker missing in binary"
             grep -E "BI-GBIS|GBIS|build" build/app-strings.txt | head -40 || true
             exit 1
@@ -139,17 +139,17 @@ jobs:
           cp -R "$APP_PATH" build/Payload/
           (
             cd build
-            zip -qr "ipa/BusIsland-v1.1-build14-GBIS.ipa" Payload
+            zip -qr "ipa/BusIsland-v1.1-build15-GBIS.ipa" Payload
           )
-          cp build/ipa/BusIsland-v1.1-build14-GBIS.ipa build/BusIsland-unsigned.ipa
+          cp build/ipa/BusIsland-v1.1-build15-GBIS.ipa build/BusIsland-unsigned.ipa
           ls -lh build/ipa/
-          shasum -a 256 build/ipa/BusIsland-v1.1-build14-GBIS.ipa
+          shasum -a 256 build/ipa/BusIsland-v1.1-build15-GBIS.ipa
 
       - name: Upload IPA artifact (versioned)
         uses: actions/upload-artifact@v4
         with:
-          name: BusIsland-v1.1-build14-GBIS-ipa
-          path: build/ipa/BusIsland-v1.1-build14-GBIS.ipa
+          name: BusIsland-v1.1-build15-GBIS-ipa
+          path: build/ipa/BusIsland-v1.1-build15-GBIS.ipa
           if-no-files-found: error
 
       - name: Upload IPA artifact (legacy name)
