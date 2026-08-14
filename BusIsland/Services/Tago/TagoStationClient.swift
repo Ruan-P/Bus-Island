@@ -67,6 +67,7 @@ actor TagoStationClient {
         }
 
         result.sort { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
+        DebugLogStore.shared.log("TAGO nearby lat=\(latitude) lon=\(longitude) hits=\(result.count) catalog=\(all.count)")
         if result.isEmpty {
             throw GbisAPIError.emptyResult
         }
@@ -140,7 +141,10 @@ actor TagoStationClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 30
 
+        DebugLogStore.shared.log("TAGO GET getSttnNoList city=\(cityCode) page=\(page)")
         let (data, response) = try await session.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        DebugLogStore.shared.log("TAGO HTTP \(status) getSttnNoList \(DebugLogStore.snippet(String(data: data, encoding: .utf8)))")
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
         }
@@ -149,6 +153,7 @@ actor TagoStationClient {
         guard root.response.header.resultCode == "00" else {
             throw GbisAPIError.apiMessage("TAGO 정류소 \(root.response.header.resultMsg)")
         }
+        DebugLogStore.shared.log("TAGO stations city=\(cityCode) rows=\(root.response.body.rows.count) total=\(root.response.body.totalCount)")
         return (root.response.body.totalCount, root.response.body.rows)
     }
 }

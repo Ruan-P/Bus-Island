@@ -30,6 +30,8 @@
 		AA0000000000000000000021 /* NearbyStationsMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000022 /* NearbyStationsMapView.swift */; };
 		AA0000000000000000000023 /* TagoStationClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000024 /* TagoStationClient.swift */; };
 		AA0000000000000000000024 /* TagoArrivalClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000025 /* TagoArrivalClient.swift */; };
+		AA0000000000000000000025 /* DebugLogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000026 /* DebugLogStore.swift */; };
+		AA0000000000000000000026 /* DebugConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000027 /* DebugConsoleView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +83,8 @@
 		AB0000000000000000000022 /* NearbyStationsMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyStationsMapView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000024 /* TagoStationClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagoStationClient.swift; sourceTree = "<group>"; };
 		AB0000000000000000000025 /* TagoArrivalClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagoArrivalClient.swift; sourceTree = "<group>"; };
+		AB0000000000000000000026 /* DebugLogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogStore.swift; sourceTree = "<group>"; };
+		AB0000000000000000000027 /* DebugConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugConsoleView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +122,7 @@
 				AB0000000000000000000002 /* ContentView.swift */,
 				AB0000000000000000000020 /* SettingsView.swift */,
 				AB0000000000000000000022 /* NearbyStationsMapView.swift */,
+				AB0000000000000000000027 /* DebugConsoleView.swift */,
 				B10000000000000000000006 /* Services */,
 				AB0000000000000000000006 /* Assets.xcassets */,
 				AB0000000000000000000012 /* Info.plist */,
@@ -161,6 +166,7 @@
 				AB0000000000000000000005 /* LiveActivityService.swift */,
 				AB0000000000000000000016 /* APIKeyStore.swift */,
 				AB0000000000000000000021 /* LocationService.swift */,
+				AB0000000000000000000026 /* DebugLogStore.swift */,
 				B10000000000000000000008 /* Gbis */,
 				B10000000000000000000009 /* Tago */,
 			);
@@ -306,6 +312,8 @@
 				AA0000000000000000000020 /* LocationService.swift in Sources */,
 				AA0000000000000000000023 /* TagoStationClient.swift in Sources */,
 				AA0000000000000000000024 /* TagoArrivalClient.swift in Sources */,
+				AA0000000000000000000025 /* DebugLogStore.swift in Sources */,
+				AA0000000000000000000026 /* DebugConsoleView.swift in Sources */,
 				AA0000000000000000000016 /* GbisModels.swift in Sources */,
 				AA0000000000000000000017 /* GbisAPIClient.swift in Sources */,
 				AA0000000000000000000018 /* GbisRideTracker.swift in Sources */,
@@ -457,7 +465,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -482,7 +490,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -505,7 +513,7 @@
 			buildSettings = {
 				SUPPORTED_PLATFORMS = iphoneos;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BusIslandWidget/Info.plist;
@@ -529,7 +537,7 @@
 			buildSettings = {
 				SUPPORTED_PLATFORMS = iphoneos;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BusIslandWidget/Info.plist;

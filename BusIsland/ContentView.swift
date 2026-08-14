@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = BusRideViewModel()
+    @State private var debugLog = DebugLogStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -11,7 +12,7 @@ struct ContentView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("BI-GBIS v1.1 build 13")
+                        Text("BI-GBIS v1.1 build 14")
                             .font(.title2.bold())
                         Text("근처정류장: TAGO(1613000) · 도착 fallback: TAGO")
                             .font(.subheadline)
@@ -26,6 +27,12 @@ struct ContentView: View {
                         SettingsView()
                     } label: {
                         Label("API 키 설정 (선택)", systemImage: "key.fill")
+                    }
+
+                    NavigationLink {
+                        DebugConsoleView()
+                    } label: {
+                        Label("디버그 콘솔 (\(debugLog.lines.count))", systemImage: "text.alignleft")
                     }
                 }
 
@@ -425,6 +432,7 @@ final class BusRideViewModel {
 
     func selectRoute(_ route: GbisRoute) async {
         await run {
+            DebugLogStore.shared.log("selectRoute \(route.routeName) id=\(route.routeId)")
             selectedRoute = route
             selectedDestination = nil
             // Keep boarding if it exists on this route; else clear.
@@ -433,6 +441,7 @@ final class BusRideViewModel {
                !routeStations.contains(where: { $0.stationId == boarding.stationId }) {
                 selectedStation = nil
             }
+            DebugLogStore.shared.log("selectRoute stations=\(routeStations.count) boardingKept=\(selectedStation != nil)")
             if routeStations.isEmpty { throw GbisAPIError.emptyResult }
         }
     }
@@ -467,13 +476,14 @@ final class BusRideViewModel {
 
     func selectNearbyStation(_ station: GbisStation) async {
         await run {
+            DebugLogStore.shared.log("selectNearby \(station.stationName) id=\(station.stationId) region=\(station.regionName ?? "-")")
             selectedStation = station
             selectedRoute = nil
             selectedDestination = nil
             routeStations = []
-            // Load routes currently arriving at this station.
             let routes = try await client.routes(at: station.stationId)
             routeResults = routes
+            DebugLogStore.shared.log("selectNearby routes=\(routes.map(\.routeName).joined(separator: ","))")
             if routes.count == 1 {
                 try await selectRouteInternal(routes[0])
             }
@@ -515,6 +525,7 @@ final class BusRideViewModel {
             )
             nearbyStations = results
             locationStatusMessage = "근처 \(results.count)개 · TAGO 1613000"
+            DebugLogStore.shared.log("nearby loaded \(results.count) first=\(results.first.map { "\($0.stationName)/\($0.stationId)" } ?? "-")")
         }
     }
 
@@ -592,6 +603,7 @@ final class BusRideViewModel {
         do {
             try await work()
         } catch {
+            DebugLogStore.shared.log("ERROR \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
     }
