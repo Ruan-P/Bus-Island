@@ -230,6 +230,35 @@ struct GbisRouteStationDTO: Decodable {
     }
 }
 
+struct GbisStationAroundListBody: Decodable {
+    let busStationAroundList: FlexibleArray<GbisStationAroundDTO>?
+}
+
+struct GbisStationAroundDTO: Decodable {
+    let stationId: LosslessStringCodable?
+    let stationName: String?
+    let mobileNo: LosslessStringCodable?
+    let regionName: String?
+    let x: LosslessStringCodable?
+    let y: LosslessStringCodable?
+    let distance: LosslessStringCodable?
+
+    func toDomain() -> GbisStation? {
+        guard let stationId = stationId?.value, !stationId.isEmpty,
+              let stationName, !stationName.isEmpty
+        else { return nil }
+        return GbisStation(
+            stationId: stationId,
+            stationName: stationName,
+            mobileNo: mobileNo?.value.trimmingCharacters(in: .whitespacesAndNewlines),
+            regionName: regionName,
+            longitude: Double(x?.value ?? ""),
+            latitude: Double(y?.value ?? ""),
+            distanceMeters: distance?.intValue
+        )
+    }
+}
+
 struct GbisArrivalItemBody: Decodable {
     let busArrivalItem: GbisArrivalDTO?
     let busArrivalList: FlexibleArray<GbisArrivalDTO>?
@@ -238,11 +267,14 @@ struct GbisArrivalItemBody: Decodable {
 struct GbisArrivalDTO: Decodable {
     let locationNo1: LosslessStringCodable?
     let predictTime1: LosslessStringCodable?
-    let plateNo1: String?
+    let plateNo1: LosslessStringCodable?
     let routeId: LosslessStringCodable?
-    let routeName: String?
-    let routeDestName: String?
+    let routeName: LosslessStringCodable?
+    let routeDestName: LosslessStringCodable?
     let staOrder: LosslessStringCodable?
+    let flag: String?
+    let crowded1: LosslessStringCodable?
+    let crowded2: LosslessStringCodable?
 
     var remainingStops: Int? {
         locationNo1?.intValue

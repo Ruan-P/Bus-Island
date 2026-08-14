@@ -77,10 +77,29 @@ actor GbisAPIClient {
         return list.sorted { $0.stationSeq < $1.stationSeq }
     }
 
-    // MARK: - Nearby / name (TAGO)
+    // MARK: - Nearby / name (GBIS around + TAGO fallback)
 
     func nearbyStations(longitude: Double, latitude: Double) async throws -> [GbisStation] {
-        try await stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
+        // 1. GBIS Around list query (Fast direct coordinate lookup)
+        do {
+            let body: GbisStationAroundListBody = try await get(
+                path: "busstationservice/v2/getBusStationAroundListv2",
+                query: [
+                    "x": String(format: "%.6f", longitude),
+                    "y": String(format: "%.6f", latitude),
+                ]
+            )
+            let items = body.busStationAroundList?.items.compactMap { $0.toDomain() } ?? []
+            if !items.isEmpty {
+                AppLog.log("GBIS nearby hit: \(items.count) stations")
+                return items.sorted { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
+            }
+        } catch {
+            AppLog.log("GBIS around list query failed: \(error.localizedDescription)")
+        }
+
+        // 2. TAGO parallel station catalog lookup
+        return try await stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
     }
 
     func searchStationsByName(keyword: String) async throws -> [GbisStation] {
@@ -90,30 +109,38 @@ actor GbisAPIClient {
     /// Routes currently arriving at a station (arrival list).
     func routes(at stationId: String) async throws -> [GbisRoute] {
         AppLog.log("routes(at:) stationId=\(stationId)")
-        let body: GbisArrivalItemBody = try await get(
-            path: "busarrivalservice/v2/getBusArrivalListv2",
-            query: ["stationId": stationId]
-        )
-        let items = body.busArrivalList?.items ?? []
-        var seen = Set<String>()
-        var routes: [GbisRoute] = []
-        for item in items {
-            guard let routeId = item.routeId?.value, !routeId.isEmpty,
-                  let routeName = item.routeName, !routeName.isEmpty,
-                  seen.insert(routeId).inserted
-            else { continue }
-            routes.append(
-                GbisRoute(
-                    routeId: routeId,
-                    routeName: routeName,
-                    routeTypeName: nil,
-                    regionName: item.routeDestName
-                )
+        do {
+            let body: GbisArrivalItemBody = try await get(
+                path: "busarrivalservice/v2/getBusArrivalListv2",
+                query: ["stationId": stationId]
             )
+            let items = body.busArrivalList?.items ?? []
+            var seen = Set<String>()
+            var routes: [GbisRoute] = []
+            for item in items {
+                guard let routeId = item.routeId?.value, !routeId.isEmpty,
+                      seen.insert(routeId).inserted
+                else { continue }
+                
+                let name = item.routeName?.value
+                let dest = item.routeDestName?.value
+                let displayName = (name != nil && !name!.isEmpty) ? name! : (dest != nil && !dest!.isEmpty ? dest! : "노선 \(routeId)")
+                
+                routes.append(
+                    GbisRoute(
+                        routeId: routeId,
+                        routeName: displayName,
+                        routeTypeName: nil,
+                        regionName: dest
+                    )
+                )
+            }
+            AppLog.log("routes(at:) parsed=\(routes.count) rawItems=\(items.count)")
+            return routes
+        } catch {
+            AppLog.log("routes(at:) arrival query failed: \(error.localizedDescription)")
+            return []
         }
-        AppLog.log("routes(at:) parsed=\(routes.count) rawItems=\(items.count)")
-        if routes.isEmpty { throw GbisAPIError.emptyResult }
-        return routes
     }
 
     func remainingStops(
@@ -245,6 +272,6 @@ actor GbisAPIClient {
                 throw GbisAPIError.decodingFailed
             }
         }
-        throw GbisAPIError.decodingFailed
+        throw GbisAPIError.emptyResult
     }
 }

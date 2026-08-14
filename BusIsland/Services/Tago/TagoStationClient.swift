@@ -40,24 +40,12 @@ actor TagoStationClient {
         return Array(filtered.prefix(50))
     }
 
-    /// 좌표 기반 빠른 주변 정류소 조회 (TAGO getCrdntPrxmtSttnList — 1회 단일 호출).
+    /// 좌표 기반 빠른 주변 정류소 조회 (병렬 캐시 로딩 + 거리 필터링).
     func nearbyStations(
         longitude: Double,
         latitude: Double,
         radiusMeters: Int = 1000
     ) async throws -> [GbisStation] {
-        // 1. Direct coordinate lookup (1 fast API request, ~0.2s)
-        do {
-            let directResults = try await fetchNearbyDirectly(longitude: longitude, latitude: latitude)
-            if !directResults.isEmpty {
-                AppLog.log("TAGO nearby direct hit: \(directResults.count) stations")
-                return Array(directResults.prefix(40))
-            }
-        } catch {
-            AppLog.log("TAGO direct nearby failed: \(error.localizedDescription)")
-        }
-
-        // 2. Fallback: Full cached stations scan
         let user = CLLocation(latitude: latitude, longitude: longitude)
         let all = try await loadAllStations()
 
@@ -87,80 +75,29 @@ actor TagoStationClient {
         return Array(result.prefix(40))
     }
 
-    private func fetchNearbyDirectly(longitude: Double, latitude: Double) async throws -> [GbisStation] {
-        guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
-            throw GbisAPIError.missingServiceKey
-        }
-        guard let url = DataGoKrURL.make(
-            base: baseURL,
-            path: "getCrdntPrxmtSttnList",
-            query: [
-                "gpsLati": String(format: "%.6f", latitude),
-                "gpsLong": String(format: "%.6f", longitude),
-                "numOfRows": "50",
-                "pageNo": "1",
-                "_type": "json",
-            ],
-            serviceKey: serviceKey
-        ) else {
-            throw GbisAPIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 10
-
-        AppLog.log("TAGO GET getCrdntPrxmtSttnList lat=\(latitude) lon=\(longitude)")
-        let (data, response) = try await session.data(for: request)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-        AppLog.log("TAGO HTTP \(status) getCrdntPrxmtSttnList \(AppLog.snippet(String(data: data, encoding: .utf8)))")
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
-        }
-
-        let root = try JSONDecoder().decode(TagoStationListRoot.self, from: data)
-        guard root.response.header.resultCode == "00" else {
-            throw GbisAPIError.apiMessage("TAGO 근접 정류소: \(root.response.header.resultMsg)")
-        }
-
-        let user = CLLocation(latitude: latitude, longitude: longitude)
-        var result: [GbisStation] = []
-        for row in root.response.body.rows {
-            guard let station = row.toDomain(regionName: nil) else { continue }
-            let distance: Int? = {
-                guard let lat = station.latitude, let lon = station.longitude else { return nil }
-                return Int(user.distance(from: CLLocation(latitude: lat, longitude: lon)))
-            }()
-            result.append(
-                GbisStation(
-                    stationId: station.stationId,
-                    stationName: station.stationName,
-                    mobileNo: station.mobileNo,
-                    regionName: station.regionName,
-                    longitude: station.longitude,
-                    latitude: station.latitude,
-                    distanceMeters: distance
-                )
-            )
-        }
-        result.sort { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
-        return result
-    }
-
+    /// 안양/의왕/군포 정류소 목록을 병렬(Parallel TaskGroup)로 초고속 일괄 로딩.
     private func loadAllStations() async throws -> [GbisStation] {
         if let cacheLoadedAt,
-           Date().timeIntervalSince(cacheLoadedAt) < 3600,
+           Date().timeIntervalSince(cacheLoadedAt) < 86400,
            !cache.isEmpty {
             return cache
         }
 
+        let startTime = Date()
         var merged: [String: GbisStation] = [:]
-        for city in Self.cities {
-            let rows = try await fetchAllPages(cityCode: city.cityCode)
-            for row in rows {
-                guard let station = row.toDomain(regionName: city.regionName) else { continue }
-                merged[station.stationId] = station
+
+        try await withThrowingTaskGroup(of: [GbisStation].self) { group in
+            for city in Self.cities {
+                group.addTask {
+                    let rows = try await self.fetchAllPages(cityCode: city.cityCode)
+                    return rows.compactMap { $0.toDomain(regionName: city.regionName) }
+                }
+            }
+
+            for try await stations in group {
+                for station in stations {
+                    merged[station.stationId] = station
+                }
             }
         }
 
@@ -170,6 +107,8 @@ actor TagoStationClient {
         }
         cache = list
         cacheLoadedAt = Date()
+        let elapsed = String(format: "%.2f", Date().timeIntervalSince(startTime))
+        AppLog.log("TAGO parallel load done in \(elapsed)s (total \(list.count) stations)")
         return list
     }
 
@@ -212,12 +151,11 @@ actor TagoStationClient {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 15
 
         AppLog.log("TAGO GET getSttnNoList city=\(cityCode) page=\(page)")
         let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-        AppLog.log("TAGO HTTP \(status) getSttnNoList \(AppLog.snippet(String(data: data, encoding: .utf8)))")
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw GbisAPIError.httpStatus(http.statusCode, String(data: data, encoding: .utf8))
         }
@@ -226,7 +164,6 @@ actor TagoStationClient {
         guard root.response.header.resultCode == "00" else {
             throw GbisAPIError.apiMessage("TAGO 정류소 \(root.response.header.resultMsg)")
         }
-        AppLog.log("TAGO stations city=\(cityCode) rows=\(root.response.body.rows.count) total=\(root.response.body.totalCount)")
         return (root.response.body.totalCount, root.response.body.rows)
     }
 }
