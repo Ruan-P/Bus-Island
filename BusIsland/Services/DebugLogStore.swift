@@ -4,7 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class DebugLogStore {
-    static let shared = DebugLogStore()
+    nonisolated(unsafe) static let shared = DebugLogStore()
 
     private(set) var lines: [String] = []
     private let maxLines = 300
