@@ -53,7 +53,7 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("BusIsland")
+            .navigationTitle("타섬")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -61,12 +61,15 @@ struct ContentView: View {
                         Image(systemName: "bus.fill")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.blue)
-                        Text("BUSISLAND")
-                            .font(.system(size: 15, weight: .black, design: .monospaced))
-                            .tracking(1.5)
-                        Text("●")
-                            .font(.system(size: 8))
+                        Text("타섬")
+                            .font(.system(size: 16, weight: .heavy))
+                        Text("•")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(viewModel.isActivityRunning ? RetroPixelTheme.green : .secondary)
+                        Text("TASEOM")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .tracking(1)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

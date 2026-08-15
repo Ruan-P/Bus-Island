@@ -103,7 +103,7 @@ struct SettingsView: View {
                     Text("NAME")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                     Spacer()
-                    Text("BusIsland")
+                    Text("타섬 (BusIsland)")
                         .font(.system(size: 12, weight: .black, design: .monospaced))
                         .foregroundStyle(.primary)
                 }

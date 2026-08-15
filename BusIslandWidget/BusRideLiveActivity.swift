@@ -3,10 +3,10 @@ import SwiftUI
 import WidgetKit
 
 private enum RideTheme {
-    static let primary = Color(red: 0.18, green: 0.53, blue: 0.98) // Apple Blue (노선)
-    static let accent = Color(red: 1.0, green: 0.58, blue: 0.0) // Warm Orange (하차 기본)
-    static let boarding = Color(red: 0.20, green: 0.78, blue: 0.65) // Cool Teal (승차)
-    static let destination = Color(red: 1.0, green: 0.32, blue: 0.32) // Alert Coral/Red (하차 1정거장 이하)
+    static let primary = Color(red: 0.20, green: 0.48, blue: 0.98) // Electric Blue (노선)
+    static let accent = Color(red: 1.0, green: 0.55, blue: 0.05)   // Warm Amber (하차)
+    static let boarding = Color(red: 0.0, green: 0.78, blue: 0.78)  // Cyan-Teal (승차)
+    static let alertRed = Color(red: 1.0, green: 0.22, blue: 0.35) // Alert Coral/Red (하차 1정거장 이하)
 }
 
 struct BusRideLiveActivity: Widget {
@@ -19,19 +19,18 @@ struct BusRideLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
                         Image(systemName: "bus.fill")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(6)
-                            .background(RideTheme.primary, in: Circle())
+                            .background(RideTheme.primary, in: RoundedRectangle(cornerRadius: 6))
 
                         VStack(alignment: .leading, spacing: 1) {
                             Text(context.state.routeNumber)
-                                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                                .font(.system(size: 16, weight: .black, design: .monospaced))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.75)
                             Text(context.state.phaseTitle)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                         }
                     }
@@ -40,72 +39,51 @@ struct BusRideLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing, spacing: 0) {
+                    VStack(alignment: .trailing, spacing: 1) {
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text("\(context.state.activeRemainingStops)")
-                                .font(.system(size: 24, weight: .black, design: .rounded))
+                                .font(.system(size: 22, weight: .black, design: .monospaced))
                                 .foregroundStyle(activeCountColor(for: context.state))
-                                .lineLimit(1)
-                            Text("정거장")
+                            Text(context.state.isOnBoard ? "남음" : "전")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.8))
+                                .foregroundStyle(.white.opacity(0.85))
                         }
-
-                        Text(context.state.isOnBoard ? "하차까지" : "승차까지")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+                        Text(context.state.isOnBoard ? "하차 정류장" : "승차 정류장")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.trailing, 12)
                     .padding(.top, 4)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 8) {
-                        // Current Target Station Focus Bar
+                    VStack(spacing: 6) {
+                        // Current Target Station Focus Pill
                         HStack(spacing: 6) {
                             Text(context.state.activeStationRole)
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
                                 .foregroundStyle(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
-                                .background((context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
+                                .background((context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
 
                             Text(context.state.activeStationName)
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.8)
 
                             Spacer()
 
                             Text(context.state.isOnBoard ? "\(context.state.remainingStops)정거장 남음" : "\(context.state.boardingRemainingStops)정거장 전")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
                                 .foregroundStyle(activeCountColor(for: context.state))
                         }
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        .padding(.vertical, 4)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
 
-                        // Dynamic Journey Progress Bar
+                        // Streamlined Journey Progress Bar
                         journeyProgressBar(state: context.state)
-                            .padding(.horizontal, 4)
-
-                        // 2 Stop rows: 한 줄씩 승차 / 하차
-                        stopRow(
-                            role: "승차",
-                            name: context.state.boarding,
-                            count: context.state.boardingRemainingStops,
-                            color: RideTheme.boarding,
-                            isCurrentPhase: !context.state.isOnBoard
-                        )
-
-                        stopRow(
-                            role: "하차",
-                            name: context.state.destination,
-                            count: context.state.remainingStops,
-                            color: RideTheme.accent,
-                            isCurrentPhase: context.state.isOnBoard
-                        )
                     }
                     .padding(.horizontal, 12)
                     .padding(.bottom, 8)
@@ -117,7 +95,7 @@ struct BusRideLiveActivity: Widget {
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(RideTheme.primary)
                     Text(context.state.routeNumber)
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
                         .lineLimit(1)
                 }
                 .padding(.leading, 4)
@@ -127,30 +105,24 @@ struct BusRideLiveActivity: Widget {
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
                     Text("\(context.state.activeRemainingStops)")
-                        .font(.system(size: 13, weight: .black, design: .rounded))
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
                         .foregroundStyle(activeCountColor(for: context.state))
                         .lineLimit(1)
                 }
                 .padding(.trailing, 4)
             } minimal: {
-                HStack(spacing: 1) {
-                    Text("\(context.state.activeRemainingStops)")
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundStyle(activeCountColor(for: context.state))
-                }
+                Text("\(context.state.activeRemainingStops)")
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(activeCountColor(for: context.state))
             }
             .keylineTint(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
         }
     }
 
-    // MARK: - Dynamic Journey Progress Bar
+    // MARK: - Streamlined Journey Progress Bar
     @ViewBuilder
     private func journeyProgressBar(state: BusRideActivityAttributes.ContentState) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(RideTheme.boarding)
-                .frame(width: 6, height: 6)
-
+        VStack(spacing: 4) {
             GeometryReader { geo in
                 let totalWidth = geo.size.width
                 let currentProgress = CGFloat(state.progress)
@@ -175,174 +147,123 @@ struct BusRideLiveActivity: Widget {
                         )
                         .frame(width: activeWidth, height: 4)
 
-                    // Moving Bus Indicator Head
+                    // Moving Bus Indicator
                     Circle()
                         .fill(Color.white)
                         .frame(width: 8, height: 8)
-                        .shadow(color: Color.black.opacity(0.4), radius: 2, x: 0, y: 1)
+                        .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
                         .offset(x: max(0, activeWidth - 4))
                 }
                 .frame(maxHeight: .infinity, alignment: .center)
             }
-            .frame(height: 10)
+            .frame(height: 8)
 
-            Circle()
-                .fill(RideTheme.destination)
-                .frame(width: 6, height: 6)
-        }
-    }
+            // Origin & Destination Milestones
+            HStack {
+                Text("승차: \(state.boarding.isEmpty ? "-" : state.boarding)")
+                    .font(.system(size: 10, weight: state.isOnBoard ? .regular : .bold))
+                    .foregroundStyle(state.isOnBoard ? Color.white.opacity(0.5) : RideTheme.boarding)
+                    .lineLimit(1)
 
-    // MARK: - Stop Row (Expanded Bottom)
-    @ViewBuilder
-    private func stopRow(role: String, name: String, count: Int, color: Color, isCurrentPhase: Bool) -> some View {
-        HStack(spacing: 8) {
-            Text(role)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(color)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(color.opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
+                Spacer()
 
-            Text(name.isEmpty ? "-" : name)
-                .font(.system(size: 12, weight: isCurrentPhase ? .bold : .medium))
-                .foregroundStyle(isCurrentPhase ? Color.white : Color.white.opacity(0.6))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 2) {
-                Text("\(count)")
-                    .font(.system(size: 13, weight: .black, design: .rounded))
-                    .foregroundStyle(isCurrentPhase ? color : Color.white.opacity(0.4))
-                Text("정거장")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(isCurrentPhase ? Color.white.opacity(0.8) : Color.white.opacity(0.3))
+                Text("하차: \(state.destination.isEmpty ? "-" : state.destination)")
+                    .font(.system(size: 10, weight: state.isOnBoard ? .bold : .regular))
+                    .foregroundStyle(state.isOnBoard ? RideTheme.accent : Color.white.opacity(0.5))
+                    .lineLimit(1)
             }
         }
     }
 
-    // MARK: - Lock Screen Card UI
+    // MARK: - Lock Screen Card UI (Clean, Spacious & High-Impact)
     @ViewBuilder
     private func lockScreenCard(state: BusRideActivityAttributes.ContentState) -> some View {
         VStack(spacing: 12) {
-            // Header Row
+            // Header Row: Bus Badge + Active Tracking Phase & Scoreboard
             HStack(alignment: .center) {
                 HStack(spacing: 8) {
                     Image(systemName: "bus.fill")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(.white)
-                        .padding(7)
-                        .background(RideTheme.primary, in: Circle())
+                        .padding(6)
+                        .background(RideTheme.primary, in: RoundedRectangle(cornerRadius: 6))
 
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(state.routeNumber)
-                            .font(.system(size: 18, weight: .heavy, design: .rounded))
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
                         HStack(spacing: 4) {
                             Circle()
                                 .fill(state.isOnBoard ? Color.green : RideTheme.boarding)
                                 .frame(width: 6, height: 6)
                             Text(state.isOnBoard ? "하차지 이동 중" : "승차 대기 중")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.65))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(state.isOnBoard ? Color.green : RideTheme.boarding)
                         }
                     }
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 0) {
-                    HStack(alignment: .lastTextBaseline, spacing: 2) {
-                        Text("\(state.activeRemainingStops)")
-                            .font(.system(size: 28, weight: .black, design: .rounded))
+                // Big Scoreboard Countdown
+                VStack(alignment: .trailing, spacing: 1) {
+                    HStack(alignment: .lastTextBaseline, spacing: 3) {
+                        Text(String(format: "%02d", state.activeRemainingStops))
+                            .font(.system(size: 26, weight: .black, design: .monospaced))
                             .foregroundStyle(activeCountColor(for: state))
-                        Text("정거장 남음")
-                            .font(.system(size: 12, weight: .bold))
+                        Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(.white.opacity(0.85))
                     }
-                    Text(state.isOnBoard ? "하차 정류장까지" : "승차 정류장까지")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+                    Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(activeCountColor(for: state).opacity(0.35), lineWidth: 1)
+                )
             }
 
-            // Prominent Currently Tracked Station Focus Box
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
-                            .frame(width: 6, height: 6)
-                        Text(state.activeStationRole)
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
-                    }
+            // Target Station Hero Banner
+            HStack(spacing: 8) {
+                Text(state.activeStationRole)
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background((state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
 
-                    Text(state.activeStationName)
-                        .font(.system(size: 16, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+                Text(state.activeStationName)
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(state.isOnBoard ? "도착 목표" : "탑승 대기")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.5))
-                    HStack(spacing: 2) {
-                        Text("\(state.activeRemainingStops)")
-                            .font(.system(size: 16, weight: .heavy, design: .rounded))
-                            .foregroundStyle(activeCountColor(for: state))
-                        Text(state.isOnBoard ? "정거장" : "정거장 전")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
-                }
+                Text(state.isOnBoard ? "\(state.remainingStops)정거장 남음" : "\(state.boardingRemainingStops)정거장 전")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(activeCountColor(for: state))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke((state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.35), lineWidth: 1)
-            )
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
 
-            // Realtime Progress Bar in Lock Screen
+            // Realtime Progress Bar & Route Endpoints
             journeyProgressBar(state: state)
                 .padding(.horizontal, 2)
-
-            Divider()
-                .overlay(Color.white.opacity(0.12))
-
-            // Station rows
-            VStack(spacing: 6) {
-                stopRow(
-                    role: "승차",
-                    name: state.boarding,
-                    count: state.boardingRemainingStops,
-                    color: RideTheme.boarding,
-                    isCurrentPhase: !state.isOnBoard
-                )
-
-                stopRow(
-                    role: "하차",
-                    name: state.destination,
-                    count: state.remainingStops,
-                    color: RideTheme.accent,
-                    isCurrentPhase: state.isOnBoard
-                )
-            }
         }
         .padding(16)
         .background(
             LinearGradient(
-                colors: [Color(white: 0.15), Color(white: 0.08)],
+                colors: [Color(white: 0.14), Color(white: 0.07)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
         )
         .clipShape(ContainerRelativeShape())
         .activityBackgroundTint(Color.black.opacity(0.6))
@@ -351,9 +272,9 @@ struct BusRideLiveActivity: Widget {
 
     private func activeCountColor(for state: BusRideActivityAttributes.ContentState) -> Color {
         if !state.isOnBoard {
-            return state.boardingRemainingStops <= 1 ? RideTheme.destination : RideTheme.boarding
+            return state.boardingRemainingStops <= 1 ? RideTheme.alertRed : RideTheme.boarding
         } else {
-            return state.remainingStops <= 1 ? RideTheme.destination : RideTheme.accent
+            return state.remainingStops <= 1 ? RideTheme.alertRed : RideTheme.accent
         }
     }
 }

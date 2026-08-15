@@ -258,25 +258,26 @@ struct RoutePickerView: View {
 
                                     Spacer(minLength: 8)
 
-                                    // Real-time Arrival Badge (Retro Arcade Style)
+                                    // Real-time Arrival Badge (High-Contrast Retro Arcade Pill)
                                     if let badgeText = route.arrivalBadgeText {
-                                        let isSoon = (route.remainingStops ?? 99) <= 2
-                                        let badgeColor = isSoon ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 0.15, green: 0.85, blue: 0.70)
-                                        VStack(alignment: .trailing, spacing: 2) {
-                                            Text("[ \(badgeText) ]")
+                                        let stops = route.remainingStops ?? 99
+                                        let isImminent = stops <= 0
+                                        let isSoon = stops == 1
+                                        let bgFill = isImminent
+                                            ? Color(red: 1.0, green: 0.22, blue: 0.35)
+                                            : (isSoon ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 0.0, green: 0.70, blue: 0.65))
+                                        VStack(alignment: .trailing, spacing: 3) {
+                                            Text(badgeText)
                                                 .font(.system(size: 11, weight: .black, design: .monospaced))
-                                                .foregroundStyle(badgeColor)
-                                                .padding(.horizontal, 6)
+                                                .foregroundStyle(Color.white)
+                                                .padding(.horizontal, 7)
                                                 .padding(.vertical, 3)
-                                                .background(badgeColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 6)
-                                                        .stroke(badgeColor.opacity(0.35), lineWidth: 1)
-                                                )
+                                                .background(bgFill, in: RoundedRectangle(cornerRadius: 6))
+                                                .shadow(color: bgFill.opacity(0.35), radius: 2, x: 0, y: 1)
+
                                             if let timeText = route.arrivalTimeText {
-                                                // timeText is already formatted as "약 N분", so render directly without repeating "약"
                                                 Text(timeText)
-                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                                                     .foregroundStyle(.secondary)
                                             }
                                         }
