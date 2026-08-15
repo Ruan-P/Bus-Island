@@ -22,13 +22,13 @@ struct StopPickerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Retro Search Box
+            // Search Box
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.secondary)
                 TextField("정류장 이름 또는 번호 검색", text: $query)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 13))
                     .textInputAutocapitalization(.never)
                     .submitLabel(.search)
                 if !query.isEmpty {
@@ -45,7 +45,7 @@ struct StopPickerView: View {
             .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
             )
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -54,13 +54,14 @@ struct StopPickerView: View {
             if filtered.isEmpty {
                 VStack(spacing: 12) {
                     Spacer()
-                    Text("⚠️")
+                    Image(systemName: "mappin.slash")
                         .font(.system(size: 36))
-                    Text("NO STOPS FOUND")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Text("검색된 정류장이 없습니다")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.secondary)
                     Text("정류장 이름이나 번호를 다시 확인해 보세요.")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -75,50 +76,34 @@ struct StopPickerView: View {
                                 dismiss()
                             } label: {
                                 HStack(spacing: 12) {
-                                    // Sequence badge in retro box
+                                    // Sequence badge
                                     Text(String(format: "%02d", stop.stationSeq))
-                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
                                         .foregroundStyle(isSelected ? Color.white : Color(red: 1.0, green: 0.55, blue: 0.0))
                                         .frame(width: 32, height: 28)
                                         .background(
                                             isSelected ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.12),
                                             in: RoundedRectangle(cornerRadius: 6)
                                         )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke((isSelected ? Color.white : Color(red: 1.0, green: 0.55, blue: 0.0)).opacity(0.35), lineWidth: 1)
-                                        )
 
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(stop.stationName)
-                                            .font(.system(size: 15, weight: isSelected ? .black : .bold))
+                                            .font(.system(size: 15, weight: isSelected ? .bold : .semibold))
                                             .foregroundStyle(.primary)
 
                                         if let mobileNo = stop.mobileNo, !mobileNo.isEmpty {
-                                            HStack(spacing: 4) {
-                                                Text("ID:")
-                                                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                                                    .foregroundStyle(.secondary)
-                                                Text(mobileNo)
-                                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                                    .foregroundStyle(.secondary)
-                                            }
+                                            Text("정류장 번호: \(mobileNo)")
+                                                .font(.system(size: 11, design: .monospaced))
+                                                .foregroundStyle(.secondary)
                                         }
                                     }
 
                                     Spacer()
 
                                     if isSelected {
-                                        Text("[선택됨]")
-                                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 17, weight: .bold))
                                             .foregroundStyle(Color(red: 1.0, green: 0.55, blue: 0.0))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .stroke(Color(red: 1.0, green: 0.55, blue: 0.0).opacity(0.4), lineWidth: 1)
-                                            )
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -126,11 +111,11 @@ struct StopPickerView: View {
                         }
                     } header: {
                         HStack {
-                            Text("◆ \(roleLabel)")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            Text(roleLabel)
+                                .font(.system(size: 12, weight: .bold))
                             Spacer()
-                            Text("TOTAL: \(filtered.count)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text("총 \(filtered.count)개")
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -163,13 +148,13 @@ struct RoutePickerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Retro Search Box
+            // Search Box
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.secondary)
-                TextField("노선 번호 또는 지역 검색", text: $query)
-                    .font(.system(size: 13, design: .monospaced))
+                TextField("노선 번호 또는 방면 검색", text: $query)
+                    .font(.system(size: 13))
                     .textInputAutocapitalization(.never)
                     .submitLabel(.search)
                 if !query.isEmpty {
@@ -186,7 +171,7 @@ struct RoutePickerView: View {
             .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
             )
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -194,13 +179,14 @@ struct RoutePickerView: View {
             if filtered.isEmpty {
                 VStack(spacing: 12) {
                     Spacer()
-                    Text("🚌")
+                    Image(systemName: "bus")
                         .font(.system(size: 36))
-                    Text("NO ROUTES FOUND")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    Text("검색된 노선이 없습니다.")
-                        .font(.system(size: 11, design: .monospaced))
+                    Text("검색된 노선이 없습니다")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.secondary)
+                    Text("노선 번호를 다시 확인해 보세요.")
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -215,42 +201,30 @@ struct RoutePickerView: View {
                                 dismiss()
                             } label: {
                                 HStack(spacing: 12) {
-                                    // Retro Pixel Bus Badge
-                                    VStack(spacing: 2) {
-                                        Text("BUS")
-                                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                                            .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color(red: 0.25, green: 0.55, blue: 1.0))
-                                        Image(systemName: "bus.fill")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(isSelected ? Color.white : Color(red: 0.25, green: 0.55, blue: 1.0))
-                                    }
-                                    .frame(width: 36, height: 36)
-                                    .background(
-                                        isSelected ? Color(red: 0.25, green: 0.55, blue: 1.0) : Color(red: 0.25, green: 0.55, blue: 1.0).opacity(0.12),
-                                        in: RoundedRectangle(cornerRadius: 8)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke((isSelected ? Color.white : Color(red: 0.25, green: 0.55, blue: 1.0)).opacity(0.35), lineWidth: 1)
-                                    )
+                                    // Bus Icon Badge
+                                    Image(systemName: "bus.fill")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundStyle(isSelected ? Color.white : Color(red: 0.20, green: 0.48, blue: 0.98))
+                                        .frame(width: 34, height: 34)
+                                        .background(
+                                            isSelected ? Color(red: 0.20, green: 0.48, blue: 0.98) : Color(red: 0.20, green: 0.48, blue: 0.98).opacity(0.12),
+                                            in: RoundedRectangle(cornerRadius: 8)
+                                        )
 
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                                             Text(route.routeName)
-                                                .font(.system(size: 17, weight: .black, design: .monospaced))
+                                                .font(.system(size: 18, weight: .bold, design: .rounded))
                                                 .foregroundStyle(.primary)
                                             if let typeName = route.routeTypeName, !typeName.isEmpty {
                                                 Text(typeName)
-                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                    .font(.system(size: 11, weight: .medium))
                                                     .foregroundStyle(.secondary)
-                                                    .padding(.horizontal, 4)
-                                                    .padding(.vertical, 1)
-                                                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 4))
                                             }
                                         }
                                         if let region = route.regionName, !region.isEmpty {
-                                            Text("› \(region)")
-                                                .font(.system(size: 11, design: .monospaced))
+                                            Text(region)
+                                                .font(.system(size: 12))
                                                 .foregroundStyle(.secondary)
                                                 .lineLimit(1)
                                         }
@@ -258,40 +232,36 @@ struct RoutePickerView: View {
 
                                     Spacer(minLength: 8)
 
-                                    // Real-time Arrival Badge (Retro Arcade Style)
+                                    // Real-time Arrival Badge
                                     if let badgeText = route.arrivalBadgeText {
                                         let isSoon = (route.remainingStops ?? 99) <= 2
-                                        let badgeColor = isSoon ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 0.15, green: 0.85, blue: 0.70)
+                                        let badgeColor = isSoon ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 0.0, green: 0.78, blue: 0.78)
                                         VStack(alignment: .trailing, spacing: 2) {
-                                            Text("[ \(badgeText) ]")
-                                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                            Text(badgeText)
+                                                .font(.system(size: 12, weight: .bold))
                                                 .foregroundStyle(badgeColor)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 3)
-                                                .background(badgeColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 6)
-                                                        .stroke(badgeColor.opacity(0.35), lineWidth: 1)
-                                                )
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(badgeColor.opacity(0.14), in: Capsule())
                                             if let timeText = route.arrivalTimeText {
-                                                Text("약 \(timeText)")
-                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                Text(timeText)
+                                                    .font(.system(size: 11, weight: .semibold))
                                                     .foregroundStyle(.secondary)
                                             }
                                         }
                                     } else {
-                                        Text("[대기]")
-                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        Text("운행 대기")
+                                            .font(.system(size: 11, weight: .medium))
                                             .foregroundStyle(.tertiary)
                                             .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
+                                            .padding(.vertical, 3)
                                             .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 4))
                                     }
 
                                     if isSelected {
-                                        Text("✔")
-                                            .font(.system(size: 12, weight: .black, design: .monospaced))
-                                            .foregroundStyle(Color(red: 0.25, green: 0.55, blue: 1.0))
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundStyle(Color(red: 0.20, green: 0.48, blue: 0.98))
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -299,11 +269,11 @@ struct RoutePickerView: View {
                         }
                     } header: {
                         HStack {
-                            Text("◆ ARRIVING BUSES")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            Text("도착 예정 노선")
+                                .font(.system(size: 12, weight: .bold))
                             Spacer()
-                            Text("TOTAL: \(filtered.count)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text("총 \(filtered.count)개")
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -336,13 +306,13 @@ struct NearbyStationPickerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Retro Search Box
+            // Search Box
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.secondary)
                 TextField("정류장 이름 검색", text: $query)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 13))
                     .textInputAutocapitalization(.never)
                     .submitLabel(.search)
                 if !query.isEmpty {
@@ -359,7 +329,7 @@ struct NearbyStationPickerView: View {
             .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
             )
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -367,13 +337,14 @@ struct NearbyStationPickerView: View {
             if filtered.isEmpty {
                 VStack(spacing: 12) {
                     Spacer()
-                    Text("📍")
+                    Image(systemName: "mappin.slash")
                         .font(.system(size: 36))
-                    Text("NO STATIONS FOUND")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    Text("검색 결과가 없습니다.")
-                        .font(.system(size: 11, design: .monospaced))
+                    Text("검색된 정류장이 없습니다")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.secondary)
+                    Text("정류장 이름을 다시 확인해 보세요.")
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -388,49 +359,45 @@ struct NearbyStationPickerView: View {
                                 dismiss()
                             } label: {
                                 HStack(spacing: 12) {
-                                    // Retro Station Pin Badge
+                                    // Distance / Pin Icon
                                     VStack(spacing: 2) {
-                                        Text("STN")
-                                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                                            .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color(red: 0.15, green: 0.85, blue: 0.70))
-                                        Image(systemName: "mappin.and.ellipse")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(isSelected ? Color.white : Color(red: 0.15, green: 0.85, blue: 0.70))
+                                        Image(systemName: "mappin.circle.fill")
+                                            .font(.system(size: 15, weight: .bold))
+                                            .foregroundStyle(isSelected ? Color.white : Color(red: 0.0, green: 0.78, blue: 0.78))
                                     }
-                                    .frame(width: 36, height: 36)
+                                    .frame(width: 32, height: 32)
                                     .background(
-                                        isSelected ? Color(red: 0.15, green: 0.85, blue: 0.70) : Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.12),
+                                        isSelected ? Color(red: 0.0, green: 0.78, blue: 0.78) : Color(red: 0.0, green: 0.78, blue: 0.78).opacity(0.12),
                                         in: RoundedRectangle(cornerRadius: 8)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke((isSelected ? Color.white : Color(red: 0.15, green: 0.85, blue: 0.70)).opacity(0.35), lineWidth: 1)
                                     )
 
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(station.stationName)
-                                            .font(.system(size: 15, weight: isSelected ? .black : .bold))
+                                            .font(.system(size: 15, weight: isSelected ? .bold : .semibold))
                                             .foregroundStyle(.primary)
                                         if !station.subtitle.isEmpty {
-                                            Text("› \(station.subtitle)")
-                                                .font(.system(size: 11, design: .monospaced))
+                                            Text(station.subtitle)
+                                                .font(.system(size: 12))
                                                 .foregroundStyle(.secondary)
+                                                .lineLimit(1)
                                         }
                                     }
 
                                     Spacer()
 
-                                    if isSelected {
-                                        Text("[선택됨]")
-                                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                                            .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
-                                            .padding(.horizontal, 6)
+                                    if let meters = station.distanceMeters {
+                                        Text(meters >= 1000 ? String(format: "%.1fkm", Double(meters) / 1000) : "\(meters)m")
+                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                            .foregroundStyle(Color(red: 0.0, green: 0.78, blue: 0.78))
+                                            .padding(.horizontal, 7)
                                             .padding(.vertical, 3)
-                                            .background(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .stroke(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.4), lineWidth: 1)
-                                            )
+                                            .background(Color(red: 0.0, green: 0.78, blue: 0.78).opacity(0.12), in: Capsule())
+                                    }
+
+                                    if isSelected {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 17, weight: .bold))
+                                            .foregroundStyle(Color(red: 0.0, green: 0.78, blue: 0.78))
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -438,11 +405,11 @@ struct NearbyStationPickerView: View {
                         }
                     } header: {
                         HStack {
-                            Text("◆ NEARBY STATIONS")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            Text("정류장 목록")
+                                .font(.system(size: 12, weight: .bold))
                             Spacer()
-                            Text("TOTAL: \(filtered.count)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            Text("총 \(filtered.count)개")
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -451,7 +418,7 @@ struct NearbyStationPickerView: View {
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("정류장 선택")
+        .navigationTitle("승차 정류장")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

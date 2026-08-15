@@ -53,16 +53,16 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("BUSISLAND")
+            .navigationTitle("BusIsland")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     HStack(spacing: 6) {
-                        Text("🚌")
+                        Image(systemName: "bus.fill")
                             .font(.system(size: 15))
-                        Text("BUSISLAND")
-                            .font(.system(size: 16, weight: .black, design: .monospaced))
-                            .tracking(1.5)
+                            .foregroundStyle(RetroPixelTheme.blue)
+                        Text("BusIsland")
+                            .font(.system(size: 16, weight: .bold))
                         Text("•")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(viewModel.isActivityRunning ? RetroPixelTheme.green : .secondary)
@@ -74,17 +74,13 @@ struct ContentView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "gearshape.fill")
-                                .font(.system(size: 13, weight: .bold))
-                            Text("SET")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("설정")
+                                .font(.system(size: 12, weight: .semibold))
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 6))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                        )
                     }
                 }
             }
@@ -99,21 +95,21 @@ struct ContentView: View {
             .overlay {
                 if viewModel.isBusy {
                     ZStack {
-                        Color.black.opacity(0.3)
+                        Color.black.opacity(0.25)
                             .ignoresSafeArea()
                         VStack(spacing: 12) {
                             ProgressView()
                                 .scaleEffect(1.2)
                                 .tint(.white)
-                            Text("SYSTEM LOADING...")
-                                .font(.system(size: 12, weight: .black, design: .monospaced))
+                            Text("버스 정보를 불러오는 중...")
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(.white)
                         }
                         .padding(22)
-                        .background(Color(white: 0.15).opacity(0.95), in: RoundedRectangle(cornerRadius: 12))
+                        .background(Color(white: 0.15).opacity(0.95), in: RoundedRectangle(cornerRadius: 14))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(RetroPixelTheme.teal.opacity(0.5), lineWidth: 1.5)
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(RetroPixelTheme.teal.opacity(0.4), lineWidth: 1.5)
                         )
                     }
                 }
@@ -133,63 +129,61 @@ struct ContentView: View {
                 Circle()
                     .fill(viewModel.isActivityRunning ? RetroPixelTheme.green : Color.secondary.opacity(0.5))
                     .frame(width: 7, height: 7)
-                Text(viewModel.isActivityRunning ? "LIVE TRACKING ON" : "READY FOR MISSION")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                Text(viewModel.isActivityRunning ? "실시간 추적 중" : "하차 알림 대기")
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(viewModel.isActivityRunning ? RetroPixelTheme.green : .secondary)
             }
             Spacer()
-            HStack(spacing: 4) {
-                Text("ISLAND")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+            HStack(spacing: 6) {
+                Text("Dynamic Island")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(RetroPixelTheme.blue)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(RetroPixelTheme.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-                Text(viewModel.hasAPIKey ? "KEY:OK" : "KEY:OFF")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(RetroPixelTheme.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                Text(viewModel.hasAPIKey ? "인증키 연결됨" : "인증키 필요")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(viewModel.hasAPIKey ? RetroPixelTheme.teal : RetroPixelTheme.alertRed)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background((viewModel.hasAPIKey ? RetroPixelTheme.teal : RetroPixelTheme.alertRed).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background((viewModel.hasAPIKey ? RetroPixelTheme.teal : RetroPixelTheme.alertRed).opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 10)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
         )
     }
 
-    // MARK: - Active Tracking Hero Card (2-Phase Retro Cyber Arcade)
+    // MARK: - Active Tracking Hero Card
     private var activeTrackingHeroCard: some View {
         VStack(spacing: 14) {
             let isOnBoard = viewModel.snapshot?.isOnBoard ?? true
 
-            // Arcade Status Tag & Bus Badge
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         Circle()
                             .fill(isOnBoard ? RetroPixelTheme.green : RetroPixelTheme.teal)
                             .frame(width: 8, height: 8)
-                        Text(isOnBoard ? "■ PHASE: 하차지 이동 중" : "■ PHASE: 승차 대기 중")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                        Text(isOnBoard ? "하차지 이동 중" : "승차 대기 중")
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(isOnBoard ? RetroPixelTheme.green : RetroPixelTheme.teal)
                     }
 
                     if let route = viewModel.selectedRoute {
                         HStack(spacing: 8) {
-                            Text("BUS")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                            Image(systemName: "bus.fill")
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(RetroPixelTheme.blue, in: RoundedRectangle(cornerRadius: 4))
+                                .padding(6)
+                                .background(RetroPixelTheme.blue, in: RoundedRectangle(cornerRadius: 8))
 
                             Text(route.routeName)
-                                .font(.system(size: 24, weight: .black, design: .monospaced))
+                                .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundStyle(.primary)
                         }
                     }
@@ -197,33 +191,32 @@ struct ContentView: View {
 
                 Spacer()
 
-                // Retro Scoreboard Counter
                 if let snapshot = viewModel.snapshot {
                     VStack(alignment: .trailing, spacing: 2) {
-                        HStack(alignment: .lastTextBaseline, spacing: 3) {
+                        HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text(String(format: "%02d", snapshot.activeRemainingStops))
-                                .font(.system(size: 32, weight: .black, design: .monospaced))
+                                .font(.system(size: 32, weight: .black, design: .rounded))
                                 .foregroundStyle(
                                     isOnBoard
                                         ? (snapshot.remainingStops <= 1 ? RetroPixelTheme.alertRed : RetroPixelTheme.orange)
                                         : (snapshot.boardingRemainingStops <= 1 ? RetroPixelTheme.orange : RetroPixelTheme.teal)
                                 )
-                            Text("STOPS")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                            Text("정거장")
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(.secondary)
                         }
                         Text(isOnBoard ? "하차 정류장까지" : "승차 정류장까지")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(isOnBoard ? RetroPixelTheme.orange : RetroPixelTheme.teal)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill(Color.primary.opacity(0.04))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .stroke(
                                 (isOnBoard ? (snapshot.remainingStops <= 1 ? RetroPixelTheme.alertRed : RetroPixelTheme.orange) : RetroPixelTheme.teal).opacity(0.35),
                                 lineWidth: 1
@@ -232,53 +225,41 @@ struct ContentView: View {
                 }
             }
 
-            // Station Flow Route Pixel Path
+            // Station Flow Path
             if let snapshot = viewModel.snapshot {
                 VStack(spacing: 8) {
                     HStack(spacing: 8) {
                         // Boarding point
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 4) {
-                                Text("[출발]")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                                    .foregroundStyle(RetroPixelTheme.teal)
-                                Text("승차")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(RetroPixelTheme.teal)
-                            }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("승차 (출발)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(RetroPixelTheme.teal)
                             Text(snapshot.boarding.isEmpty ? "-" : snapshot.boarding)
-                                .font(.system(size: 13, weight: isOnBoard ? .medium : .bold))
+                                .font(.system(size: 14, weight: isOnBoard ? .medium : .bold))
                                 .foregroundStyle(isOnBoard ? Color.secondary : Color.primary)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                        // Arrow
-                        VStack(spacing: 2) {
-                            Text("▶▶▶")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .foregroundStyle(Color.secondary.opacity(0.5))
-                        }
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.secondary.opacity(0.6))
+                            .padding(.horizontal, 4)
 
                         // Destination point
-                        VStack(alignment: .trailing, spacing: 2) {
-                            HStack(spacing: 4) {
-                                Text("하차")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(RetroPixelTheme.orange)
-                                Text("[도착]")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                                    .foregroundStyle(RetroPixelTheme.orange)
-                            }
+                        VStack(alignment: .trailing, spacing: 3) {
+                            Text("하차 (도착)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(RetroPixelTheme.orange)
                             Text(snapshot.destination.isEmpty ? "-" : snapshot.destination)
-                                .font(.system(size: 13, weight: isOnBoard ? .bold : .medium))
+                                .font(.system(size: 14, weight: isOnBoard ? .bold : .medium))
                                 .foregroundStyle(isOnBoard ? Color.primary : Color.secondary)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    .padding(10)
-                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10))
+                    .padding(12)
+                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12))
                 }
             }
 
@@ -288,22 +269,19 @@ struct ContentView: View {
                     Task { await viewModel.markAsBoarded() }
                 } label: {
                     HStack(spacing: 8) {
-                        Text("⚡")
-                            .font(.system(size: 13))
-                        Text("지금 버스 탑승함 [하차 알림 전환]")
-                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                        Image(systemName: "figure.walk.arrival")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("지금 버스에 탑승함 (하차 알림으로 전환)")
+                            .font(.system(size: 13, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 12)
                     .foregroundStyle(.white)
                     .background(
                         LinearGradient(colors: [RetroPixelTheme.blue, Color(red: 0.1, green: 0.35, blue: 0.85)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        in: RoundedRectangle(cornerRadius: 10)
+                        in: RoundedRectangle(cornerRadius: 12)
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                    )
+                    .shadow(color: RetroPixelTheme.blue.opacity(0.25), radius: 4, x: 0, y: 2)
                 }
             }
 
@@ -313,37 +291,29 @@ struct ContentView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("REFRESH")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .font(.system(size: 13, weight: .bold))
+                        Text("지금 갱신")
+                            .font(.system(size: 13, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 11)
                     .foregroundStyle(RetroPixelTheme.blue)
-                    .background(RetroPixelTheme.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(RetroPixelTheme.blue.opacity(0.3), lineWidth: 1)
-                    )
+                    .background(RetroPixelTheme.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                 }
 
                 Button(role: .destructive) {
                     Task { await viewModel.endTracking() }
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "xmark.square.fill")
-                            .font(.system(size: 12, weight: .bold))
-                        Text("END MISSION")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("알림 종료")
+                            .font(.system(size: 13, weight: .bold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 11)
                     .foregroundStyle(.white)
-                    .background(RetroPixelTheme.alertRed, in: RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.white.opacity(0.25), lineWidth: 1)
-                    )
+                    .background(RetroPixelTheme.alertRed, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
         }
@@ -355,11 +325,11 @@ struct ContentView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
-                    (viewModel.snapshot?.isOnBoard ?? false ? RetroPixelTheme.green : RetroPixelTheme.teal).opacity(0.4),
+                    (viewModel.snapshot?.isOnBoard ?? false ? RetroPixelTheme.green : RetroPixelTheme.teal).opacity(0.35),
                     lineWidth: 1.5
                 )
         )
-        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 3)
     }
 
     // MARK: - Journey Summary Card (승차 -> 노선 -> 하차)
@@ -367,23 +337,23 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 HStack(spacing: 6) {
-                    Text("◆")
-                        .font(.system(size: 10, weight: .black))
+                    Image(systemName: "point.topleft.down.to.point.bottomright.filled")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(RetroPixelTheme.teal)
-                    Text("MY JOURNEY")
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                    Text("나의 여정 요약")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.primary)
                 }
                 Spacer()
                 Text(viewModel.statusText)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(viewModel.isActivityRunning ? RetroPixelTheme.green : .secondary)
             }
 
             // 칩 순서: 승차(Teal) -> 노선(Blue) -> 하차(Orange)
             HStack(spacing: 8) {
                 journeyChip(
-                    stepNumber: "01",
+                    stepNumber: "1",
                     title: "승차",
                     value: viewModel.selectedStation?.stationName ?? "미선택",
                     icon: "figure.walk",
@@ -392,7 +362,7 @@ struct ContentView: View {
                 )
 
                 journeyChip(
-                    stepNumber: "02",
+                    stepNumber: "2",
                     title: "노선",
                     value: viewModel.selectedRoute?.routeName ?? "미선택",
                     icon: "bus.fill",
@@ -401,7 +371,7 @@ struct ContentView: View {
                 )
 
                 journeyChip(
-                    stepNumber: "03",
+                    stepNumber: "3",
                     title: "하차",
                     value: viewModel.selectedDestination?.stationName ?? "미선택",
                     icon: "flag.checkered",
@@ -431,15 +401,15 @@ struct ContentView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 4) {
-                Text("[\(stepNumber)]")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                Text("\(stepNumber).")
+                    .font(.system(size: 10, weight: .bold))
                 Text(title)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
             }
             .foregroundStyle(isSelected ? color : Color.secondary)
 
             Text(value)
-                .font(.system(size: 12, weight: isSelected ? .bold : .medium, design: isSelected ? .monospaced : .default))
+                .font(.system(size: 12, weight: isSelected ? .bold : .medium))
                 .foregroundStyle(isSelected ? Color.primary : Color.secondary)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -462,20 +432,20 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 HStack(spacing: 6) {
-                    Text("[1]")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("1")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(RetroPixelTheme.teal)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(RetroPixelTheme.teal.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
                     Text("승차 정류장")
-                        .font(.system(size: 15, weight: .black, design: .monospaced))
+                        .font(.system(size: 15, weight: .bold))
                 }
                 Spacer()
                 if let station = viewModel.selectedStation {
                     HStack(spacing: 4) {
-                        Text("SELECTED:")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text("선택됨:")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.teal)
                         Text(station.stationName)
                             .font(.system(size: 12, weight: .bold))
@@ -484,10 +454,6 @@ struct ContentView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(RetroPixelTheme.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(RetroPixelTheme.teal.opacity(0.3), lineWidth: 1)
-                    )
                 }
             }
 
@@ -499,24 +465,17 @@ struct ContentView: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Text("📍")
-                        .font(.system(size: 14))
-                    Text("내 위치 기준 가장 가까운 정류장 선택")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("내 위치 기준 가장 가까운 정류장 자동 선택")
+                        .font(.system(size: 13, weight: .bold))
                     Spacer()
-                    Text("[AUTO]")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 4))
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12))
                 }
                 .padding(12)
                 .foregroundStyle(.white)
                 .background(RetroPixelTheme.teal, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                )
             }
 
             // Map and Nearby List options
@@ -529,16 +488,12 @@ struct ContentView: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.teal)
                         Text("지도에서 찾기")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.primary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
                     .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
                 }
 
                 if !viewModel.nearbyStations.isEmpty {
@@ -551,20 +506,16 @@ struct ContentView: View {
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            Text("LIST")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                            Image(systemName: "list.bullet")
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundStyle(RetroPixelTheme.teal)
                             Text("근처 (\(viewModel.nearbyStations.count)개)")
-                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(.primary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 11)
                         .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(RetroPixelTheme.teal.opacity(0.25), lineWidth: 1)
-                        )
                     }
                 }
             }
@@ -578,7 +529,7 @@ struct ContentView: View {
                     TextField("정류장 이름 검색 (예: 안양역, 사당역)", text: $viewModel.stationNameQuery)
                         .textInputAutocapitalization(.never)
                         .submitLabel(.search)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.system(size: 13))
                         .onSubmit { Task { await viewModel.searchStationsByName() } }
                     if !viewModel.stationNameQuery.isEmpty {
                         Button {
@@ -592,16 +543,12 @@ struct ContentView: View {
                 }
                 .padding(10)
                 .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                )
 
                 Button {
                     Task { await viewModel.searchStationsByName() }
                 } label: {
-                    Text("SEARCH")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("검색")
+                        .font(.system(size: 12, weight: .bold))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                 }
@@ -622,25 +569,21 @@ struct ContentView: View {
                 } label: {
                     HStack {
                         Text("검색 결과 [\(viewModel.stationNameResults.count)개 정류소]")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.teal)
                         Spacer()
-                        Text("VIEW ▶")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text("목록 보기")
+                            .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.secondary)
                     }
                     .padding(12)
                     .background(RetroPixelTheme.teal.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(RetroPixelTheme.teal.opacity(0.25), lineWidth: 1)
-                    )
                 }
             }
 
             if let message = viewModel.locationStatusMessage {
-                Text("› \(message)")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                Text("• \(message)")
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
                     .padding(.leading, 2)
             }
@@ -661,32 +604,28 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 HStack(spacing: 6) {
-                    Text("[2]")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("2")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(RetroPixelTheme.blue)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(RetroPixelTheme.blue.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-                    Text("탑승 버스 노선")
-                        .font(.system(size: 15, weight: .black, design: .monospaced))
+                    Text("탑승할 버스 노선")
+                        .font(.system(size: 15, weight: .bold))
                 }
                 Spacer()
                 if let route = viewModel.selectedRoute {
                     HStack(spacing: 4) {
-                        Text("BUS:")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                        Image(systemName: "bus.fill")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.blue)
                         Text(route.routeName)
-                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(.primary)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(RetroPixelTheme.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(RetroPixelTheme.blue.opacity(0.3), lineWidth: 1)
-                    )
                 }
             }
 
@@ -701,27 +640,24 @@ struct ContentView: View {
                     }
                 } label: {
                     HStack(spacing: 10) {
-                        Text("🚌")
-                            .font(.system(size: 18))
+                        Image(systemName: "bus.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(RetroPixelTheme.blue)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(viewModel.selectedRoute?.routeName ?? "도착 예정 버스 (\(viewModel.routeResults.count)개) 중 선택")
-                                .font(.system(size: 13, weight: .black, design: .monospaced))
+                                .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(.primary)
                             Text("실시간 도착 정보 기반 노선 목록")
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text("SELECT ▶")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                        Text("선택하기")
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.blue)
                     }
                     .padding(12)
                     .background(RetroPixelTheme.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(RetroPixelTheme.blue.opacity(0.3), lineWidth: 1)
-                    )
                 }
             }
 
@@ -735,7 +671,7 @@ struct ContentView: View {
                         TextField("노선 번호 입력 (예: 1-1, 3412)", text: $viewModel.routeQuery)
                             .textInputAutocapitalization(.never)
                             .keyboardType(.numbersAndPunctuation)
-                            .font(.system(size: 13, design: .monospaced))
+                            .font(.system(size: 13))
                             .submitLabel(.search)
                             .onSubmit { Task { await viewModel.searchRoutes() } }
                         if !viewModel.routeQuery.isEmpty {
@@ -750,16 +686,12 @@ struct ContentView: View {
                     }
                     .padding(10)
                     .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
 
                     Button {
                         Task { await viewModel.searchRoutes() }
                     } label: {
-                        Text("FIND")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                        Text("검색")
+                            .font(.system(size: 11, weight: .bold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
                     }
@@ -771,7 +703,7 @@ struct ContentView: View {
                 .padding(.top, 6)
             } label: {
                 Text("노선 번호로 직접 찾기 (보조 검색)")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -791,20 +723,20 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 HStack(spacing: 6) {
-                    Text("[3]")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Text("3")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(RetroPixelTheme.orange)
-                        .padding(.horizontal, 5)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(RetroPixelTheme.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
                     Text("하차 정류장")
-                        .font(.system(size: 15, weight: .black, design: .monospaced))
+                        .font(.system(size: 15, weight: .bold))
                 }
                 Spacer()
                 if let dest = viewModel.selectedDestination {
                     HStack(spacing: 4) {
-                        Text("DEST:")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                        Text("선택됨:")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(RetroPixelTheme.orange)
                         Text(dest.stationName)
                             .font(.system(size: 12, weight: .bold))
@@ -813,10 +745,6 @@ struct ContentView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(RetroPixelTheme.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(RetroPixelTheme.orange.opacity(0.3), lineWidth: 1)
-                    )
                 }
             }
 
@@ -831,33 +759,30 @@ struct ContentView: View {
                 }
             } label: {
                 HStack(spacing: 10) {
-                    Text("🏁")
-                        .font(.system(size: 16))
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(RetroPixelTheme.orange)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(viewModel.selectedDestination?.stationName ?? "하차할 정류장 선택하기")
-                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(.primary)
                         Text("승차 이후 정류소 (\(viewModel.destinationCandidates.count)개 후보)")
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Text("CHOOSE ▶")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                    Text("선택하기")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(RetroPixelTheme.orange)
                 }
                 .padding(12)
                 .background(RetroPixelTheme.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(RetroPixelTheme.orange.opacity(0.3), lineWidth: 1)
-                )
             }
             .disabled(viewModel.destinationCandidates.isEmpty)
 
             if viewModel.destinationCandidates.isEmpty {
-                Text("› 승차 정류장 이후 운행하는 하차 정류장이 없습니다. 앞쪽 정류소를 선택해 보세요.")
-                    .font(.system(size: 11, design: .monospaced))
+                Text("• 승차 정류장 이후 운행하는 하차 정류장이 없습니다. 앞쪽 정류소를 선택해 보세요.")
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
         }
@@ -879,11 +804,10 @@ struct ContentView: View {
                 Task { await viewModel.startTracking() }
             } label: {
                 HStack(spacing: 8) {
-                    Text("⚡")
-                        .font(.system(size: 16))
-                    Text("START DYNAMIC ISLAND")
-                        .font(.system(size: 15, weight: .black, design: .monospaced))
-                        .tracking(1)
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(.system(size: 15, weight: .bold))
+                    Text("Dynamic Island 알림 시작")
+                        .font(.system(size: 15, weight: .bold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
@@ -894,17 +818,13 @@ struct ContentView: View {
                         : AnyShapeStyle(Color.gray.opacity(0.35)),
                     in: RoundedRectangle(cornerRadius: 14)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(viewModel.canStartTracking ? Color.white.opacity(0.4) : Color.clear, lineWidth: 1.5)
-                )
-                .shadow(color: viewModel.canStartTracking ? RetroPixelTheme.blue.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+                .shadow(color: viewModel.canStartTracking ? RetroPixelTheme.blue.opacity(0.25) : Color.clear, radius: 6, x: 0, y: 3)
             }
             .disabled(!viewModel.canStartTracking || viewModel.isBusy)
 
             if !viewModel.canStartTracking {
-                Text("› \(startGuideMessage)")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                Text("• \(startGuideMessage)")
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
