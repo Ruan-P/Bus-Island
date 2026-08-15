@@ -128,6 +128,8 @@ jobs:
           rm -rf build/Payload build/ipa
           mkdir -p build/Payload build/ipa
           cp -R "$APP_PATH" build/Payload/
+          # Ensure loose AppIcon PNGs exist in root of .app for SpringBoard/usernoted in sideloaded environments
+          cp -f BusIsland/Assets.xcassets/AppIcon.appiconset/*.png build/Payload/BusIsland.app/ || true
           (
             cd build
             zip -qr "ipa/BusIsland-unsigned.ipa" Payload
