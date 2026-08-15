@@ -18,7 +18,7 @@ final class RideNotificationService {
     func notifyBoardingSoon(route: String, station: String) {
         post(
             id: "ride.boarding.soon",
-            title: "\(route) 승차 1정거장",
+            title: "🚌 \(route) 승차 1정거장",
             body: "\(station)에서 승차하세요. 앱에서 승차를 눌러 주세요."
         )
     }
@@ -26,7 +26,7 @@ final class RideNotificationService {
     func notifyAlightSoon(route: String, station: String) {
         post(
             id: "ride.alight.soon",
-            title: "\(route) 하차 1정거장",
+            title: "🔔 \(route) 하차 1정거장",
             body: "다음 정류장은 \(station)입니다. 내릴 준비 하세요."
         )
     }
@@ -34,7 +34,7 @@ final class RideNotificationService {
     func notifyArrived(route: String, station: String) {
         post(
             id: "ride.alight.now",
-            title: "\(route) 하차하세요",
+            title: "🏁 \(route) 하차하세요",
             body: "\(station)에 도착했습니다."
         )
     }
@@ -57,6 +57,11 @@ final class RideNotificationService {
         content.sound = .default
         content.interruptionLevel = .timeSensitive
 
+        // Attach custom App Icon image to bypass sideloading SpringBoard icon cache
+        if let attachment = Self.createAppIconAttachment() {
+            content.attachments = [attachment]
+        }
+
         let request = UNNotificationRequest(
             identifier: id,
             content: content,
@@ -67,9 +72,26 @@ final class RideNotificationService {
                 if let error {
                     AppLog.log("notification \(id) failed: \(error.localizedDescription)")
                 } else {
-                    AppLog.log("notification \(id) posted")
+                    AppLog.log("notification \(id) posted with custom icon attachment")
                 }
             }
+        }
+    }
+
+    private static func createAppIconAttachment() -> UNNotificationAttachment? {
+        guard let sourceURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png")
+                ?? Bundle.main.url(forResource: "AppIcon60x60@3x", withExtension: "png")
+                ?? Bundle.main.url(forResource: "AppIcon-1024", withExtension: "png")
+        else { return nil }
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let targetURL = tempDir.appendingPathComponent("ta_seom_notification_icon.png")
+        try? FileManager.default.removeItem(at: targetURL)
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: targetURL)
+            return try UNNotificationAttachment(identifier: "app_icon_attachment", url: targetURL, options: nil)
+        } catch {
+            return try? UNNotificationAttachment(identifier: "app_icon_attachment", url: sourceURL, options: nil)
         }
     }
 }

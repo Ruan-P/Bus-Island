@@ -141,7 +141,7 @@ struct BusRideLiveActivity: Widget {
                 ZStack(alignment: .leading) {
                     // Translucent track
                     Capsule()
-                        .fill(Color.white.opacity(0.18))
+                        .fill(Color.white.opacity(0.20))
                         .frame(height: 4)
 
                     // Active glowing filled bar
@@ -192,16 +192,16 @@ struct BusRideLiveActivity: Widget {
                 .foregroundStyle(color)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(color.opacity(0.20), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .background(color.opacity(0.22), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .stroke(color.opacity(0.40), lineWidth: 0.75)
+                        .stroke(color.opacity(0.45), lineWidth: 0.75)
                 )
 
             VStack(alignment: .leading, spacing: 1.5) {
                 Text(name.isEmpty ? "-" : name)
                     .font(.system(size: 14, weight: isCurrentPhase ? .heavy : .semibold))
-                    .foregroundStyle(isCurrentPhase ? Color.white : Color.white.opacity(0.60))
+                    .foregroundStyle(isCurrentPhase ? Color.white : Color.white.opacity(0.65))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -222,15 +222,15 @@ struct BusRideLiveActivity: Widget {
                 Text("\(count)")
                     .font(.system(size: 14, weight: .black, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isCurrentPhase ? color : Color.white.opacity(0.35))
+                    .foregroundStyle(isCurrentPhase ? color : Color.white.opacity(0.40))
                 Text("정거장")
                     .font(.system(size: 9.5, weight: .bold))
-                    .foregroundStyle(isCurrentPhase ? Color.white.opacity(0.85) : Color.white.opacity(0.30))
+                    .foregroundStyle(isCurrentPhase ? Color.white.opacity(0.90) : Color.white.opacity(0.35))
             }
         }
     }
 
-    // MARK: - Lock Screen Card UI (High-Contrast Liquid Glass Aesthetic)
+    // MARK: - Lock Screen Card UI (True Translucent Liquid Glass Aesthetic)
     @ViewBuilder
     private func lockScreenCard(state: BusRideActivityAttributes.ContentState) -> some View {
         VStack(spacing: 12) {
@@ -271,7 +271,7 @@ struct BusRideLiveActivity: Widget {
                             .foregroundStyle(activeCountColor(for: state))
                         Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
                             .font(.system(size: 12, weight: .heavy))
-                            .foregroundStyle(.white.opacity(0.90))
+                            .foregroundStyle(.white.opacity(0.92))
                     }
                     Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
                         .font(.system(size: 10, weight: .bold))
@@ -284,7 +284,7 @@ struct BusRideLiveActivity: Widget {
                 .padding(.horizontal, 2)
 
             Divider()
-                .overlay(Color.white.opacity(0.18))
+                .overlay(Color.white.opacity(0.22))
 
             // Station rows: 승차 / 하차
             VStack(spacing: 7) {
@@ -310,25 +310,19 @@ struct BusRideLiveActivity: Widget {
         .padding(16)
         .background(
             ZStack {
-                // Rich Translucent Slate Glass Canvas
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.13, green: 0.16, blue: 0.22).opacity(0.94),
-                        Color(red: 0.07, green: 0.09, blue: 0.14).opacity(0.98)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                // True Translucent Ultra-Thin Frosted Glass Base
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.ultraThinMaterial)
 
-                // Subtle Radial Specular Glow
+                // Subtle Radial Ambient Glow
                 RadialGradient(
                     colors: [
-                        (state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.14),
+                        (state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.18),
                         Color.clear
                     ],
                     center: .topLeading,
                     startRadius: 10,
-                    endRadius: 180
+                    endRadius: 200
                 )
             }
             .clipShape(ContainerRelativeShape())
@@ -338,7 +332,7 @@ struct BusRideLiveActivity: Widget {
             ContainerRelativeShape()
                 .stroke(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.40), Color.white.opacity(0.08), Color.white.opacity(0.18)],
+                        colors: [Color.white.opacity(0.45), Color.white.opacity(0.10), Color.white.opacity(0.22)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -346,7 +340,7 @@ struct BusRideLiveActivity: Widget {
                 )
         )
         .clipShape(ContainerRelativeShape())
-        .activityBackgroundTint(Color.black.opacity(0.55))
+        .activityBackgroundTint(Color.clear)
         .activitySystemActionForegroundColor(.white)
     }
 
