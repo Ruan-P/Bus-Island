@@ -32,6 +32,22 @@ public final class LiveActivityService {
         !Activity<BusRideActivityAttributes>.activities.isEmpty
     }
 
+    public var currentSnapshot: BusRideSnapshot? {
+        guard let activity = Activity<BusRideActivityAttributes>.activities.first else {
+            return nil
+        }
+        let state = activity.content.state
+        return BusRideSnapshot(
+            id: activity.attributes.rideID,
+            routeNumber: state.routeNumber,
+            boarding: state.boarding,
+            destination: state.destination,
+            boardingRemainingStops: state.boardingRemainingStops,
+            remainingStops: state.remainingStops,
+            totalRideStops: state.totalRideStops
+        )
+    }
+
     public func start(with snapshot: BusRideSnapshot) async throws {
         guard areActivitiesEnabled else {
             throw LiveActivityServiceError.activitiesDisabled

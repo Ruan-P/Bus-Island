@@ -17,11 +17,11 @@ final class GbisRideTracker {
     private(set) var latestSnapshot: BusRideSnapshot?
     private(set) var isOnBoardConfirmed = false
     private(set) var hasArrived = false
+    private(set) var lastBoardingRemaining: Int?
+    private(set) var lastAlightingRemaining: Int?
+    private(set) var didFireBoardingSoon = false
+    private(set) var didFireAlightSoon = false
 
-    private var lastBoardingRemaining: Int?
-    private var lastAlightingRemaining: Int?
-    private var didFireBoardingSoon = false
-    private var didFireAlightSoon = false
     private var pendingEvent: RidePhaseEvent?
 
     init(client: GbisAPIClient? = nil) {
@@ -93,6 +93,28 @@ final class GbisRideTracker {
             "ride refresh boarded=\(isOnBoardConfirmed) arrived=\(hasArrived) board=\(boardingRealtime.map(String.init) ?? "-") dest=\(alightingRealtime.map(String.init) ?? "-") event=\(String(describing: pendingEvent))"
         )
         return snapshot
+    }
+
+    func restore(
+        selection: GbisRideSelection,
+        snapshot: BusRideSnapshot,
+        isOnBoardConfirmed: Bool,
+        hasArrived: Bool,
+        lastBoardingRemaining: Int?,
+        lastAlightingRemaining: Int?,
+        didFireBoardingSoon: Bool,
+        didFireAlightSoon: Bool
+    ) {
+        stopPolling()
+        self.selection = selection
+        self.latestSnapshot = snapshot
+        self.isOnBoardConfirmed = isOnBoardConfirmed
+        self.hasArrived = hasArrived
+        self.lastBoardingRemaining = lastBoardingRemaining
+        self.lastAlightingRemaining = lastAlightingRemaining
+        self.didFireBoardingSoon = didFireBoardingSoon
+        self.didFireAlightSoon = didFireAlightSoon
+        self.pendingEvent = nil
     }
 
     func markAsBoarded() -> BusRideSnapshot? {

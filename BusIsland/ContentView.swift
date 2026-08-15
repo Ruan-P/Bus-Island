@@ -114,11 +114,15 @@ struct ContentView: View {
                     }
                 }
             }
-            .task { viewModel.refreshStatus() }
+            .task { await viewModel.restoreIfNeeded() }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { viewModel.refreshStatus() }
+                if phase == .active {
+                    Task { await viewModel.restoreIfNeeded() }
+                }
             }
-            .onAppear { viewModel.refreshStatus() }
+            .onAppear {
+                Task { await viewModel.restoreIfNeeded() }
+            }
         }
     }
 
@@ -853,6 +857,8 @@ final class BusRideViewModel {
     private let keyStore = APIKeyStore.shared
     private let locationService = LocationService.shared
     private let notifications = RideNotificationService.shared
+    private let sessionStore = RideSessionStore.shared
+    private var isRestoring = false
 
     var hasAPIKey = false
     var routeQuery = ""
@@ -916,6 +922,35 @@ final class BusRideViewModel {
         hasAPIKey = keyStore.hasServiceKey
         activitiesEnabled = activityService.areActivitiesEnabled
         isActivityRunning = activityService.hasActiveActivity
+    }
+
+    /// Rehydrates in-app ride state from the persisted session + surviving Live Activity.
+    /// Process death (common after a time-sensitive 1-stop notification) wipes the ViewModel
+    /// while ActivityKit keeps the Island alive.
+    func restoreIfNeeded() async {
+        refreshStatus()
+        if tracker.isTracking || isRestoring { return }
+
+        let hasActivity = activityService.hasActiveActivity
+        let session = sessionStore.load()
+
+        guard hasActivity else {
+            if session != nil {
+                sessionStore.clear()
+                AppLog.log("restore: cleared stale session (no Live Activity)")
+            }
+            return
+        }
+
+        isRestoring = true
+        defer { isRestoring = false }
+
+        if let session {
+            await restoreFromSession(session)
+        } else if let live = activityService.currentSnapshot {
+            applyDisplayOnlySnapshot(live)
+            AppLog.log("restore: Live Activity without persisted session")
+        }
     }
 
     func searchRoutes() async {
@@ -1112,18 +1147,8 @@ final class BusRideViewModel {
             try await activityService.start(with: initial)
             snapshot = initial
             isActivityRunning = true
-            tracker.startPolling(
-                intervalSeconds: 15,
-                onUpdate: { [weak self] updated in
-                    guard let self else { return }
-                    Task { @MainActor in
-                        await self.applyRideUpdate(updated)
-                    }
-                },
-                onError: { [weak self] error in
-                    self?.errorMessage = error.localizedDescription
-                }
-            )
+            persistSession()
+            beginPolling()
         }
     }
 
@@ -1136,6 +1161,7 @@ final class BusRideViewModel {
                     alertBody: "\(updated.destination)까지 하차 안내를 시작합니다."
                 )
                 snapshot = updated
+                persistSession()
             }
         }
     }
@@ -1180,10 +1206,12 @@ final class BusRideViewModel {
                 )
                 snapshot = updated
                 isActivityRunning = true
+                persistSession()
                 try? await Task.sleep(for: .seconds(15))
                 locationService.stopRideBackgroundUpdates()
                 await activityService.end()
                 tracker.reset()
+                sessionStore.clear()
                 isActivityRunning = false
                 return
             case .none:
@@ -1191,6 +1219,7 @@ final class BusRideViewModel {
             }
             snapshot = updated
             isActivityRunning = true
+            persistSession()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -1201,9 +1230,111 @@ final class BusRideViewModel {
             notifications.clearRideNotifications()
             locationService.stopRideBackgroundUpdates()
             tracker.reset()
+            sessionStore.clear()
             await activityService.end()
             isActivityRunning = false
         }
+    }
+
+    private func restoreFromSession(_ session: RideSessionRecord) async {
+        selectedStation = session.selection.boardingStation
+        selectedRoute = session.selection.route
+        selectedDestination = session.selection.destination
+        routeStations = session.routeStations
+
+        let live = activityService.currentSnapshot
+        let restoredSnapshot = live ?? session.snapshot
+        snapshot = restoredSnapshot
+        isActivityRunning = true
+
+        let boarded = session.isOnBoardConfirmed || restoredSnapshot.isOnBoard
+        tracker.restore(
+            selection: session.selection,
+            snapshot: restoredSnapshot,
+            isOnBoardConfirmed: boarded,
+            hasArrived: session.hasArrived || (restoredSnapshot.remainingStops == 0 && boarded),
+            lastBoardingRemaining: session.lastBoardingRemaining,
+            lastAlightingRemaining: live?.remainingStops ?? session.lastAlightingRemaining,
+            didFireBoardingSoon: session.didFireBoardingSoon,
+            didFireAlightSoon: session.didFireAlightSoon
+        )
+
+        if routeStations.isEmpty {
+            routeStations = (try? await client.stations(on: session.selection.route.routeId)) ?? []
+        }
+
+        if tracker.hasArrived {
+            AppLog.log("restore: ride already arrived — finishing")
+            locationService.stopRideBackgroundUpdates()
+            await activityService.end()
+            tracker.reset()
+            sessionStore.clear()
+            isActivityRunning = false
+            return
+        }
+
+        await notifications.requestAuthorization()
+        await locationService.startRideBackgroundUpdates()
+        persistSession()
+        AppLog.log(
+            "restore: resumed \(session.selection.route.routeName) boarded=\(boarded) dest=\(session.selection.destination.stationName)"
+        )
+
+        if let updated = try? await tracker.refreshSnapshot() {
+            await applyRideUpdate(updated)
+        }
+        beginPolling()
+    }
+
+    private func applyDisplayOnlySnapshot(_ live: BusRideSnapshot) {
+        snapshot = live
+        isActivityRunning = true
+        if selectedRoute == nil {
+            selectedRoute = GbisRoute(routeId: live.id, routeName: live.routeNumber)
+        }
+        if selectedStation == nil, !live.boarding.isEmpty {
+            selectedStation = GbisStation(stationId: "restored-board", stationName: live.boarding)
+        }
+        if selectedDestination == nil, !live.destination.isEmpty {
+            selectedDestination = GbisRouteStation(
+                stationId: "restored-dest",
+                stationName: live.destination,
+                stationSeq: 0
+            )
+        }
+    }
+
+    private func persistSession() {
+        guard let selection = tracker.selection, let snapshot else { return }
+        sessionStore.save(
+            RideSessionRecord(
+                selection: selection,
+                snapshot: snapshot,
+                routeStations: routeStations,
+                isOnBoardConfirmed: tracker.isOnBoardConfirmed,
+                hasArrived: tracker.hasArrived,
+                lastBoardingRemaining: tracker.lastBoardingRemaining,
+                lastAlightingRemaining: tracker.lastAlightingRemaining,
+                didFireBoardingSoon: tracker.didFireBoardingSoon,
+                didFireAlightSoon: tracker.didFireAlightSoon
+            )
+        )
+    }
+
+    private func beginPolling() {
+        guard !tracker.isTracking else { return }
+        tracker.startPolling(
+            intervalSeconds: 15,
+            onUpdate: { [weak self] updated in
+                guard let self else { return }
+                Task { @MainActor in
+                    await self.applyRideUpdate(updated)
+                }
+            },
+            onError: { [weak self] error in
+                self?.errorMessage = error.localizedDescription
+            }
+        )
     }
 
     private func selectRouteInternal(_ route: GbisRoute) async throws {

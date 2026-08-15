@@ -134,7 +134,7 @@ struct GbisRouteStation: Identifiable, Hashable, Sendable, Codable {
     }
 }
 
-struct GbisRideSelection: Hashable, Sendable {
+struct GbisRideSelection: Hashable, Sendable, Codable {
     let boardingStation: GbisStation
     let route: GbisRoute
     let destination: GbisRouteStation
