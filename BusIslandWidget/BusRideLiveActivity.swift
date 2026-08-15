@@ -356,10 +356,10 @@ struct BusRideLiveActivity: Widget {
                 Text("\(count)")
                     .font(.system(size: 14, weight: .black, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isCurrentPhase ? color : .tertiary)
+                    .foregroundStyle(isCurrentPhase ? AnyShapeStyle(color) : AnyShapeStyle(.tertiary))
                 Text("정거장")
                     .font(.system(size: 9.5, weight: .bold))
-                    .foregroundStyle(isCurrentPhase ? .secondary : .tertiary)
+                    .foregroundStyle(isCurrentPhase ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
             }
         }
     }
