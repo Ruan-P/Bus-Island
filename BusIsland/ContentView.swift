@@ -1206,7 +1206,8 @@ final class BusRideViewModel {
                 boardingStation: station,
                 route: route,
                 destination: destination,
-                boardingSeq: boardingSeq
+                boardingSeq: boardingSeq,
+                allStations: routeStations
             )
             await notifications.requestAuthorization()
             await locationService.startRideBackgroundUpdates()

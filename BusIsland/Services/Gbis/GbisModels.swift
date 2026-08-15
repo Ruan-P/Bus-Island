@@ -139,6 +139,21 @@ struct GbisRideSelection: Hashable, Sendable, Codable {
     let route: GbisRoute
     let destination: GbisRouteStation
     let boardingSeq: Int
+    var allStations: [GbisRouteStation] = []
+
+    init(
+        boardingStation: GbisStation,
+        route: GbisRoute,
+        destination: GbisRouteStation,
+        boardingSeq: Int,
+        allStations: [GbisRouteStation] = []
+    ) {
+        self.boardingStation = boardingStation
+        self.route = route
+        self.destination = destination
+        self.boardingSeq = boardingSeq
+        self.allStations = allStations
+    }
 
     var rideID: String {
         "\(route.routeId)-\(boardingStation.stationId)-\(destination.stationId)"

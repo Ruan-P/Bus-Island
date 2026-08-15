@@ -79,11 +79,31 @@ final class GbisRideTracker {
             alightingStops = 0
         }
 
+        // Determine currently tracked bus location station name
+        var currentStationName: String?
+        if !selection.allStations.isEmpty {
+            if !isOnBoardConfirmed && boardingStops > 0 {
+                let estimatedSeq = max(1, selection.boardingSeq - boardingStops)
+                if let matched = selection.allStations.first(where: { $0.stationSeq == estimatedSeq }) {
+                    currentStationName = matched.stationName
+                }
+            } else {
+                let estimatedSeq = max(selection.boardingSeq, selection.destination.stationSeq - alightingStops)
+                if let matched = selection.allStations.first(where: { $0.stationSeq == estimatedSeq }) {
+                    currentStationName = matched.stationName
+                }
+            }
+        }
+        if currentStationName == nil || currentStationName?.isEmpty == true {
+            currentStationName = isOnBoardConfirmed ? selection.destination.stationName : selection.boardingStation.stationName
+        }
+
         let snapshot = BusRideSnapshot(
             id: selection.rideID,
             routeNumber: selection.route.routeName,
             boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
+            currentStation: currentStationName,
             boardingRemainingStops: boardingStops,
             remainingStops: alightingStops,
             totalRideStops: seqDiff
