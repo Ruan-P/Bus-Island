@@ -2,13 +2,11 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-// MARK: - Apple Liquid Material Palette & System Tokens
-private enum AppleGlassTheme {
-    static let azure = Color(red: 0.0, green: 0.48, blue: 1.0)       // Apple System Blue
-    static let teal = Color(red: 0.19, green: 0.69, blue: 0.78)      // Apple System Teal (승차)
-    static let amber = Color(red: 1.0, green: 0.58, blue: 0.0)       // Apple System Orange (하차)
-    static let coral = Color(red: 1.0, green: 0.23, blue: 0.19)      // Apple System Red (하차 임박)
-    static let mint = Color(red: 0.20, green: 0.78, blue: 0.35)       // Apple System Green (Live Active)
+private enum RideTheme {
+    static let primary = Color(red: 0.18, green: 0.53, blue: 0.98)       // Apple Blue (노선)
+    static let accent = Color(red: 1.0, green: 0.58, blue: 0.0)          // Warm Orange (하차 기본)
+    static let boarding = Color(red: 0.20, green: 0.78, blue: 0.65)      // Cool Teal (승차)
+    static let destination = Color(red: 1.0, green: 0.32, blue: 0.32)   // Alert Coral/Red (하차 1정거장 이하)
 }
 
 struct BusRideLiveActivity: Widget {
@@ -19,30 +17,22 @@ struct BusRideLiveActivity: Widget {
             DynamicIsland {
                 // MARK: - Expanded UI
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(spacing: 8) {
-                        // Apple Glass Route Badge
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(AppleGlassTheme.azure.gradient)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(Color.white.opacity(0.30), lineWidth: 0.75)
-                                )
+                    HStack(spacing: 6) {
+                        Image(systemName: "bus.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(6)
+                            .background(RideTheme.primary, in: Circle())
 
-                            Image(systemName: "bus.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                        .frame(width: 32, height: 32)
-
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 1) {
                             Text(context.state.routeNumber)
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
+                                .font(.system(size: 17, weight: .heavy, design: .rounded))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                             Text(context.state.phaseTitle)
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                .foregroundStyle(context.state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                         }
                     }
                     .padding(.leading, 12)
@@ -50,19 +40,20 @@ struct BusRideLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing, spacing: 1) {
+                    VStack(alignment: .trailing, spacing: 0) {
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text("\(context.state.activeRemainingStops)")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .monospacedDigit()
+                                .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundStyle(activeCountColor(for: context.state))
-                            Text(context.state.isOnBoard ? "남음" : "전")
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.85))
+                                .lineLimit(1)
+                            Text("정거장")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.8))
                         }
-                        Text(context.state.isOnBoard ? "하차 정류소" : "승차 정류소")
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
-                            .foregroundStyle(.secondary)
+
+                        Text(context.state.isOnBoard ? "하차까지" : "승차까지")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                     }
                     .padding(.trailing, 12)
                     .padding(.top, 4)
@@ -70,304 +61,244 @@ struct BusRideLiveActivity: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(spacing: 8) {
-                        // Location & Target Flow Pills
-                        HStack(spacing: 6) {
-                            // Current Location
-                            HStack(spacing: 4) {
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(AppleGlassTheme.teal)
-                                Text(context.state.currentStation ?? context.state.boarding)
-                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3.5)
-                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        // Dynamic Journey Progress Bar
+                        journeyProgressBar(state: context.state)
+                            .padding(.horizontal, 4)
 
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(.secondary)
+                        // Station Rows
+                        stopRow(
+                            role: "승차",
+                            name: context.state.boarding,
+                            count: context.state.boardingRemainingStops,
+                            currentLocation: !context.state.isOnBoard ? context.state.currentStation : nil,
+                            color: RideTheme.boarding,
+                            isCurrentPhase: !context.state.isOnBoard
+                        )
 
-                            // Target Goal
-                            HStack(spacing: 4) {
-                                Image(systemName: "flag.fill")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(context.state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
-                                Text(context.state.activeStationName)
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(1)
-                            }
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3.5)
-                            .background((context.state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal).opacity(0.18), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-
-                            Spacer(minLength: 0)
-
-                            Text(context.state.isOnBoard ? "\(context.state.remainingStops)정거장" : "\(context.state.boardingRemainingStops)전")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(activeCountColor(for: context.state))
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                        // Apple Glass Progress Bar
-                        appleProgressBar(state: context.state)
+                        stopRow(
+                            role: "하차",
+                            name: context.state.destination,
+                            count: context.state.remainingStops,
+                            currentLocation: context.state.isOnBoard ? context.state.currentStation : nil,
+                            color: RideTheme.accent,
+                            isCurrentPhase: context.state.isOnBoard
+                        )
                     }
                     .padding(.horizontal, 12)
                     .padding(.bottom, 8)
                     .clipShape(ContainerRelativeShape())
                 }
             } compactLeading: {
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     Image(systemName: "bus.fill")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(AppleGlassTheme.azure)
+                        .foregroundStyle(RideTheme.primary)
                     Text(context.state.routeNumber)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
                         .lineLimit(1)
                 }
                 .padding(.leading, 4)
             } compactTrailing: {
                 HStack(spacing: 2) {
                     Text(context.state.isOnBoard ? "하차" : "승차")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
                     Text("\(context.state.activeRemainingStops)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .monospacedDigit()
+                        .font(.system(size: 13, weight: .black, design: .rounded))
                         .foregroundStyle(activeCountColor(for: context.state))
                         .lineLimit(1)
                 }
                 .padding(.trailing, 4)
             } minimal: {
-                Text("\(context.state.activeRemainingStops)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(activeCountColor(for: context.state))
+                HStack(spacing: 1) {
+                    Text("\(context.state.activeRemainingStops)")
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundStyle(activeCountColor(for: context.state))
+                }
             }
-            .keylineTint(context.state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
+            .keylineTint(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
         }
     }
 
-    // MARK: - Apple Liquid Progress Tube
+    // MARK: - Dynamic Journey Progress Bar
     @ViewBuilder
-    private func appleProgressBar(state: BusRideActivityAttributes.ContentState) -> some View {
-        GeometryReader { geo in
-            let totalWidth = geo.size.width
-            let currentProgress = CGFloat(state.progress)
-            let activeWidth = max(12, min(totalWidth, totalWidth * currentProgress))
+    private func journeyProgressBar(state: BusRideActivityAttributes.ContentState) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(RideTheme.boarding)
+                .frame(width: 6, height: 6)
 
-            ZStack(alignment: .leading) {
-                // Glass track
-                Capsule()
-                    .fill(Color.white.opacity(0.12))
-                    .frame(height: 6)
+            GeometryReader { geo in
+                let totalWidth = geo.size.width
+                let currentProgress = CGFloat(state.progress)
+                let activeWidth = max(8, min(totalWidth, totalWidth * currentProgress))
 
-                // Active Liquid Bar
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: state.isOnBoard
-                                ? [AppleGlassTheme.teal, AppleGlassTheme.amber]
-                                : [AppleGlassTheme.azure, AppleGlassTheme.teal],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                ZStack(alignment: .leading) {
+                    // Background track
+                    Capsule()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(height: 4)
+
+                    // Active filled bar
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: state.isOnBoard
+                                    ? [RideTheme.boarding, RideTheme.accent]
+                                    : [RideTheme.boarding.opacity(0.7), RideTheme.boarding],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
-                    )
-                    .frame(width: activeWidth, height: 6)
+                        .frame(width: activeWidth, height: 4)
 
-                // Transit bead
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 10, height: 10)
-                    .shadow(color: Color.black.opacity(0.4), radius: 2, x: 0, y: 1)
-                    .offset(x: max(0, activeWidth - 5))
+                    // Moving Bus Indicator Head
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .shadow(color: Color.black.opacity(0.4), radius: 2, x: 0, y: 1)
+                        .offset(x: max(0, activeWidth - 4))
+                }
+                .frame(maxHeight: .infinity, alignment: .center)
             }
-            .frame(maxHeight: .infinity, alignment: .center)
+            .frame(height: 10)
+
+            Circle()
+                .fill(RideTheme.destination)
+                .frame(width: 6, height: 6)
         }
-        .frame(height: 10)
     }
 
-    // MARK: - Authentic Apple Material & Liquid Glass Lock Screen Card (Spacious & Breathable)
+    // MARK: - Stop Row (Clean & Breathable)
+    @ViewBuilder
+    private func stopRow(role: String, name: String, count: Int, currentLocation: String?, color: Color, isCurrentPhase: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text(role)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(color)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1.5)
+                .background(color.opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(name.isEmpty ? "-" : name)
+                    .font(.system(size: 13, weight: isCurrentPhase ? .bold : .medium))
+                    .foregroundStyle(isCurrentPhase ? Color.white : Color.white.opacity(0.55))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                if isCurrentPhase, let loc = currentLocation, !loc.isEmpty, loc != name {
+                    Text("📍 버스 현재 위치: \(loc)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 2) {
+                Text("\(count)")
+                    .font(.system(size: 13, weight: .black, design: .rounded))
+                    .foregroundStyle(isCurrentPhase ? color : Color.white.opacity(0.35))
+                Text("정거장")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(isCurrentPhase ? Color.white.opacity(0.8) : Color.white.opacity(0.25))
+            }
+        }
+    }
+
+    // MARK: - Lock Screen Card UI (Build 26 Beloved Structure)
     @ViewBuilder
     private func lockScreenCard(state: BusRideActivityAttributes.ContentState) -> some View {
-        VStack(spacing: 14) {
-            // MARK: - 1. Header: Bus Route Badge + Live Status + Large Countdown
+        VStack(spacing: 12) {
+            // Header Row: Bus Badge + Active Tracking Phase & Scoreboard Countdown
             HStack(alignment: .center) {
-                HStack(spacing: 10) {
-                    // Refined Glass Route Emblem
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .fill(AppleGlassTheme.azure.gradient)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [Color.white.opacity(0.45), Color.white.opacity(0.10)],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        ),
-                                        lineWidth: 0.75
-                                    )
-                            )
-                            .shadow(color: AppleGlassTheme.azure.opacity(0.35), radius: 5, x: 0, y: 2)
+                HStack(spacing: 8) {
+                    Image(systemName: "bus.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(7)
+                        .background(RideTheme.primary, in: Circle())
 
-                        Image(systemName: "bus.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                    .frame(width: 36, height: 36)
-
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(state.routeNumber)
-                            .font(.system(size: 21, weight: .bold, design: .rounded))
+                            .font(.system(size: 18, weight: .heavy, design: .rounded))
                             .foregroundStyle(.white)
-
-                        HStack(spacing: 5) {
+                        HStack(spacing: 4) {
                             Circle()
-                                .fill(state.isOnBoard ? AppleGlassTheme.mint : AppleGlassTheme.teal)
+                                .fill(state.isOnBoard ? Color.green : RideTheme.boarding)
                                 .frame(width: 6, height: 6)
-                            Text(state.isOnBoard ? "하차지 이동 중 · LIVE" : "승차 대기 중 · LIVE")
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                .foregroundStyle(state.isOnBoard ? AppleGlassTheme.mint : AppleGlassTheme.teal)
+                            Text(state.isOnBoard ? "하차지 이동 중" : "승차 대기 중")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.65))
                         }
                     }
                 }
 
                 Spacer()
 
-                // Large Glass Scoreboard Countdown
-                VStack(alignment: .trailing, spacing: 1) {
-                    HStack(alignment: .lastTextBaseline, spacing: 3) {
-                        Text(String(format: "%02d", state.activeRemainingStops))
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .monospacedDigit()
+                VStack(alignment: .trailing, spacing: 0) {
+                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                        Text("\(state.activeRemainingStops)")
+                            .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundStyle(activeCountColor(for: state))
                         Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.88))
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.85))
                     }
                     Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.08))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [activeCountColor(for: state).opacity(0.50), activeCountColor(for: state).opacity(0.12)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.75
-                        )
-                )
-            }
-
-            // MARK: - 2. Spacious Transit Flow (Clean & Unboxed)
-            VStack(spacing: 9) {
-                // Real-time Current Location Line
-                HStack(spacing: 8) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(AppleGlassTheme.teal)
-
-                    Text("현재 위치")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-
-                    Text(state.currentStation ?? (state.isOnBoard ? state.destination : state.boarding))
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    Text(state.isOnBoard ? "운행 중" : "접근 중")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2.5)
-                        .background(Color.white.opacity(0.08), in: Capsule())
-                }
-
-                // Target Destination Goal Line
-                HStack(spacing: 8) {
-                    Image(systemName: "flag.fill")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
-
-                    Text(state.activeStationRole)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
-
-                    Text(state.activeStationName)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-
-                    Spacer()
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                 }
             }
-            .padding(.horizontal, 4)
 
-            // MARK: - 3. Apple Glass Journey Progress Tube
-            appleProgressBar(state: state)
+            // Realtime Progress Bar in Lock Screen
+            journeyProgressBar(state: state)
                 .padding(.horizontal, 2)
-                .padding(.top, 2)
-        }
-        .padding(18)
-        .background(
-            ZStack {
-                // Deep Obsidian Glass Material Base
-                Color(white: 0.11).opacity(0.90)
 
-                // Ambient Radial Light Tint
-                RadialGradient(
-                    colors: [
-                        (state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.azure).opacity(0.14),
-                        Color.clear
-                    ],
-                    center: .topLeading,
-                    startRadius: 10,
-                    endRadius: 190
+            Divider()
+                .overlay(Color.white.opacity(0.12))
+
+            // Station rows: 승차 / 하차
+            VStack(spacing: 6) {
+                stopRow(
+                    role: "승차",
+                    name: state.boarding,
+                    count: state.boardingRemainingStops,
+                    currentLocation: !state.isOnBoard ? state.currentStation : nil,
+                    color: RideTheme.boarding,
+                    isCurrentPhase: !state.isOnBoard
+                )
+
+                stopRow(
+                    role: "하차",
+                    name: state.destination,
+                    count: state.remainingStops,
+                    currentLocation: state.isOnBoard ? state.currentStation : nil,
+                    color: RideTheme.accent,
+                    isCurrentPhase: state.isOnBoard
                 )
             }
-            .clipShape(ContainerRelativeShape())
-        )
-        .overlay(
-            // Delicate Specular Glass Rim Reflection
-            ContainerRelativeShape()
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.26), Color.white.opacity(0.04)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.75
-                )
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [Color(white: 0.15), Color(white: 0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
         )
         .clipShape(ContainerRelativeShape())
-        .activityBackgroundTint(Color.black.opacity(0.60))
+        .activityBackgroundTint(Color.black.opacity(0.6))
         .activitySystemActionForegroundColor(.white)
     }
 
     private func activeCountColor(for state: BusRideActivityAttributes.ContentState) -> Color {
         if !state.isOnBoard {
-            return state.boardingRemainingStops <= 1 ? AppleGlassTheme.coral : AppleGlassTheme.teal
+            return state.boardingRemainingStops <= 1 ? RideTheme.destination : RideTheme.boarding
         } else {
-            return state.remainingStops <= 1 ? AppleGlassTheme.coral : AppleGlassTheme.amber
+            return state.remainingStops <= 1 ? RideTheme.destination : RideTheme.accent
         }
     }
 }
