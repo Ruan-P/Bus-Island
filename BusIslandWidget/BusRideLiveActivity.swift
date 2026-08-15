@@ -3,10 +3,10 @@ import SwiftUI
 import WidgetKit
 
 private enum RideTheme {
-    static let primary = Color(red: 0.18, green: 0.53, blue: 0.98)       // Apple Blue (노선)
-    static let accent = Color(red: 1.0, green: 0.58, blue: 0.0)          // Warm Orange (하차 기본)
-    static let boarding = Color(red: 0.20, green: 0.78, blue: 0.65)      // Cool Teal (승차)
-    static let destination = Color(red: 1.0, green: 0.32, blue: 0.32)   // Alert Coral/Red (하차 1정거장 이하)
+    static let primary = Color(red: 0.18, green: 0.53, blue: 0.98)
+    static let accent = Color(red: 1.0, green: 0.58, blue: 0.0)
+    static let boarding = Color(red: 0.20, green: 0.78, blue: 0.65)
+    static let destination = Color(red: 1.0, green: 0.32, blue: 0.32)
 }
 
 struct BusRideLiveActivity: Widget {
@@ -15,7 +15,6 @@ struct BusRideLiveActivity: Widget {
             lockScreenCard(state: context.state)
         } dynamicIsland: { context in
             DynamicIsland {
-                // MARK: - Expanded UI
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
                         Image(systemName: "bus.fill")
@@ -44,6 +43,7 @@ struct BusRideLiveActivity: Widget {
                         HStack(alignment: .lastTextBaseline, spacing: 2) {
                             Text("\(context.state.activeRemainingStops)")
                                 .font(.system(size: 24, weight: .black, design: .rounded))
+                                .monospacedDigit()
                                 .foregroundStyle(activeCountColor(for: context.state))
                                 .lineLimit(1)
                             Text("정거장")
@@ -61,11 +61,9 @@ struct BusRideLiveActivity: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(spacing: 8) {
-                        // Dynamic Journey Progress Bar
                         journeyProgressBar(state: context.state)
                             .padding(.horizontal, 4)
 
-                        // Station Rows
                         stopRow(
                             role: "승차",
                             name: context.state.boarding,
@@ -105,22 +103,21 @@ struct BusRideLiveActivity: Widget {
                         .foregroundStyle(.secondary)
                     Text("\(context.state.activeRemainingStops)")
                         .font(.system(size: 13, weight: .black, design: .rounded))
+                        .monospacedDigit()
                         .foregroundStyle(activeCountColor(for: context.state))
                         .lineLimit(1)
                 }
                 .padding(.trailing, 4)
             } minimal: {
-                HStack(spacing: 1) {
-                    Text("\(context.state.activeRemainingStops)")
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundStyle(activeCountColor(for: context.state))
-                }
+                Text("\(context.state.activeRemainingStops)")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(activeCountColor(for: context.state))
             }
             .keylineTint(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
         }
     }
 
-    // MARK: - Dynamic Journey Progress Bar
     @ViewBuilder
     private func journeyProgressBar(state: BusRideActivityAttributes.ContentState) -> some View {
         HStack(spacing: 6) {
@@ -134,12 +131,10 @@ struct BusRideLiveActivity: Widget {
                 let activeWidth = max(8, min(totalWidth, totalWidth * currentProgress))
 
                 ZStack(alignment: .leading) {
-                    // Background track
                     Capsule()
                         .fill(Color.white.opacity(0.16))
                         .frame(height: 4)
 
-                    // Active filled bar
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -152,7 +147,6 @@ struct BusRideLiveActivity: Widget {
                         )
                         .frame(width: activeWidth, height: 4)
 
-                    // Moving Bus Indicator Head
                     Circle()
                         .fill(Color.white)
                         .frame(width: 8, height: 8)
@@ -169,26 +163,32 @@ struct BusRideLiveActivity: Widget {
         }
     }
 
-    // MARK: - Stop Row (Clean & Breathable)
     @ViewBuilder
-    private func stopRow(role: String, name: String, count: Int, currentLocation: String?, color: Color, isCurrentPhase: Bool) -> some View {
+    private func stopRow(
+        role: String,
+        name: String,
+        count: Int,
+        currentLocation: String?,
+        color: Color,
+        isCurrentPhase: Bool
+    ) -> some View {
         HStack(spacing: 8) {
             Text(role)
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(color)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(color.opacity(0.18), in: RoundedRectangle(cornerRadius: 4))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .rideLiquidGlass(in: RoundedRectangle(cornerRadius: 5, style: .continuous), tint: color.opacity(0.28))
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(name.isEmpty ? "-" : name)
                     .font(.system(size: 13, weight: isCurrentPhase ? .bold : .medium))
-                    .foregroundStyle(isCurrentPhase ? Color.white : Color.white.opacity(0.55))
+                    .foregroundStyle(isCurrentPhase ? Color.primary : Color.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
                 if isCurrentPhase, let loc = currentLocation, !loc.isEmpty, loc != name {
-                    Text("📍 버스 현재 위치: \(loc)")
+                    Text("버스 현재 위치: \(loc)")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(color)
                         .lineLimit(1)
@@ -199,19 +199,19 @@ struct BusRideLiveActivity: Widget {
             HStack(spacing: 2) {
                 Text("\(count)")
                     .font(.system(size: 13, weight: .black, design: .rounded))
-                    .foregroundStyle(isCurrentPhase ? color : Color.white.opacity(0.35))
+                    .monospacedDigit()
+                    .foregroundStyle(isCurrentPhase ? color : Color.secondary)
                 Text("정거장")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(isCurrentPhase ? Color.white.opacity(0.8) : Color.white.opacity(0.25))
+                    .foregroundStyle(isCurrentPhase ? Color.primary.opacity(0.75) : Color.secondary)
             }
         }
     }
 
-    // MARK: - Lock Screen Card UI (Build 26 Beloved Structure)
+    /// Build 26 lock-screen IA, rendered on the system Liquid Glass platter.
     @ViewBuilder
     private func lockScreenCard(state: BusRideActivityAttributes.ContentState) -> some View {
         VStack(spacing: 12) {
-            // Header Row: Bus Badge + Active Tracking Phase & Scoreboard Countdown
             HStack(alignment: .center) {
                 HStack(spacing: 8) {
                     Image(systemName: "bus.fill")
@@ -223,14 +223,13 @@ struct BusRideLiveActivity: Widget {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(state.routeNumber)
                             .font(.system(size: 18, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.white)
                         HStack(spacing: 4) {
                             Circle()
                                 .fill(state.isOnBoard ? Color.green : RideTheme.boarding)
                                 .frame(width: 6, height: 6)
                             Text(state.isOnBoard ? "하차지 이동 중" : "승차 대기 중")
                                 .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.65))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -241,10 +240,10 @@ struct BusRideLiveActivity: Widget {
                     HStack(alignment: .lastTextBaseline, spacing: 2) {
                         Text("\(state.activeRemainingStops)")
                             .font(.system(size: 28, weight: .black, design: .rounded))
+                            .monospacedDigit()
                             .foregroundStyle(activeCountColor(for: state))
                         Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.85))
                     }
                     Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
                         .font(.system(size: 10, weight: .bold))
@@ -252,15 +251,13 @@ struct BusRideLiveActivity: Widget {
                 }
             }
 
-            // Realtime Progress Bar in Lock Screen
             journeyProgressBar(state: state)
                 .padding(.horizontal, 2)
 
             Divider()
-                .overlay(Color.white.opacity(0.12))
+                .opacity(0.35)
 
-            // Station rows: 승차 / 하차
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 stopRow(
                     role: "승차",
                     name: state.boarding,
@@ -281,17 +278,8 @@ struct BusRideLiveActivity: Widget {
             }
         }
         .padding(16)
-        .background(
-            LinearGradient(
-                colors: [Color(white: 0.15), Color(white: 0.08)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
-        )
-        .clipShape(ContainerRelativeShape())
-        .activityBackgroundTint(Color.black.opacity(0.6))
-        .activitySystemActionForegroundColor(.white)
+        .rideLiquidGlass(in: ContainerRelativeShape())
+        .activitySystemActionForegroundColor(.primary)
     }
 
     private func activeCountColor(for state: BusRideActivityAttributes.ContentState) -> Color {

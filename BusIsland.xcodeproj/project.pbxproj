@@ -18,6 +18,7 @@
 		AA0000000000000000000009 /* BusIslandWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000015 /* BusIslandWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AA0000000000000000000010 /* BusIslandWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000007 /* BusIslandWidgetBundle.swift */; };
 		AA0000000000000000000011 /* BusRideLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000008 /* BusRideLiveActivity.swift */; };
+		AA0000000000000000000031 /* LiquidGlassSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000031 /* LiquidGlassSupport.swift */; };
 		AA0000000000000000000012 /* BusRideActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* BusRideActivityAttributes.swift */; };
 		AA0000000000000000000013 /* BusRideSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000011 /* BusRideSnapshot.swift */; };
 		AA0000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000009 /* Assets.xcassets */; };
@@ -70,6 +71,7 @@
 		AB0000000000000000000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB0000000000000000000007 /* BusIslandWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusIslandWidgetBundle.swift; sourceTree = "<group>"; };
 		AB0000000000000000000008 /* BusRideLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusRideLiveActivity.swift; sourceTree = "<group>"; };
+		AB0000000000000000000031 /* LiquidGlassSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassSupport.swift; sourceTree = "<group>"; };
 		AB0000000000000000000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB0000000000000000000010 /* BusRideActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusRideActivityAttributes.swift; sourceTree = "<group>"; };
 		AB0000000000000000000011 /* BusRideSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BusRideSnapshot.swift; sourceTree = "<group>"; };
@@ -142,6 +144,7 @@
 			children = (
 				AB0000000000000000000007 /* BusIslandWidgetBundle.swift */,
 				AB0000000000000000000008 /* BusRideLiveActivity.swift */,
+				AB0000000000000000000031 /* LiquidGlassSupport.swift */,
 				AB0000000000000000000009 /* Assets.xcassets */,
 				AB0000000000000000000013 /* Info.plist */,
 			);
@@ -340,6 +343,7 @@
 			files = (
 				AA0000000000000000000010 /* BusIslandWidgetBundle.swift in Sources */,
 				AA0000000000000000000011 /* BusRideLiveActivity.swift in Sources */,
+				AA0000000000000000000031 /* LiquidGlassSupport.swift in Sources */,
 				AA0000000000000000000012 /* BusRideActivityAttributes.swift in Sources */,
 				AA0000000000000000000013 /* BusRideSnapshot.swift in Sources */,
 			);
@@ -474,11 +478,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -500,11 +504,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -528,7 +532,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BusIslandWidget/Info.plist;
@@ -553,7 +557,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BusIslandWidget/Info.plist;
