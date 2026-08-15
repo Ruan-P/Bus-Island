@@ -18,7 +18,6 @@ actor TagoArrivalClient {
     }
 
     func remainingStops(stationId: String, routeId: String, cityCode: Int?) async throws -> Int? {
-        _ = routeId
         guard let cityCode else { return nil }
         guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
             throw GbisAPIError.missingServiceKey
@@ -43,7 +42,7 @@ actor TagoArrivalClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 15
 
-        AppLog.log("TAGO GET arrival node=\(nodeId) city=\(cityCode)")
+        AppLog.log("TAGO GET arrival node=\(nodeId) route=\(routeId) city=\(cityCode)")
         let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
         AppLog.log("TAGO HTTP \(status) arrival \(AppLog.snippet(String(data: data, encoding: .utf8)))")
@@ -53,9 +52,15 @@ actor TagoArrivalClient {
 
         let root = try JSONDecoder().decode(TagoArrivalRoot.self, from: data)
         guard root.response.header.resultCode == "00" else { return nil }
-        if let stops = root.response.body.item?.arrprevstationcnt {
+        
+        let tagoTargetId = "GGB" + routeId
+        if let match = root.response.body.items.first(where: {
+            $0.routeid == tagoTargetId || $0.routeid == routeId
+        }), let stops = match.arrprevstationcnt {
+            AppLog.log("TAGO arrival matched route=\(routeId) stops=\(stops)")
             return max(0, stops)
         }
+
         return nil
     }
 }
@@ -71,42 +76,46 @@ private struct TagoArrivalRoot: Decodable {
         let resultMsg: String
     }
     struct Body: Decodable {
-        let item: Items.Item?
+        let items: [TagoArrivalItem]
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            guard let items = try? container.decode(Items.self, forKey: .items) else {
-                item = nil
-                return
+            if let itemsContainer = try? container.decode(ItemsWrapper.self, forKey: .items) {
+                items = itemsContainer.items
+            } else {
+                items = []
             }
-            item = items.item
         }
 
         enum CodingKeys: String, CodingKey { case items }
     }
-    struct Items: Decodable {
-        struct Item: Decodable {
-            let arrprevstationcnt: Int?
-        }
-        let item: Item?
+
+    struct ItemsWrapper: Decodable {
+        let items: [TagoArrivalItem]
 
         init(from decoder: Decoder) throws {
             if let single = try? decoder.singleValueContainer() {
                 if single.decodeNil() || (try? single.decode(String.self)) != nil {
-                    item = nil
+                    items = []
                     return
                 }
             }
             let keyed = try decoder.container(keyedBy: CodingKeys.self)
-            if let one = try? keyed.decode(Item.self, forKey: .item) {
-                item = one
-            } else if let many = try? keyed.decode([Item].self, forKey: .item) {
-                item = many.first
+            if let array = try? keyed.decode([TagoArrivalItem].self, forKey: .item) {
+                items = array
+            } else if let one = try? keyed.decode(TagoArrivalItem.self, forKey: .item) {
+                items = [one]
             } else {
-                item = nil
+                items = []
             }
         }
 
         enum CodingKeys: String, CodingKey { case item }
     }
+}
+
+struct TagoArrivalItem: Decodable {
+    let routeid: String?
+    let routeno: LosslessStringCodable?
+    let arrprevstationcnt: Int?
 }

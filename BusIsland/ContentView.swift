@@ -989,7 +989,7 @@ final class BusRideViewModel {
                 )
                 snapshot = updated
                 isActivityRunning = true
-                try? await Task.sleep(for: .seconds(8))
+                try? await Task.sleep(for: .seconds(15))
                 locationService.stopRideBackgroundUpdates()
                 await activityService.end()
                 tracker.reset()

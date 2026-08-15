@@ -110,14 +110,17 @@ final class GbisRideTracker {
         seqDiff: Int
     ) {
         if !isOnBoardConfirmed {
+            // 1. 승차 대기 단계
             if let boarding = boardingRealtime {
                 if boarding == 0 {
                     confirmBoarded()
-                } else if boarding == 1, !didFireBoardingSoon {
-                    didFireBoardingSoon = true
-                    emit(.boardingSoon)
-                } else if let previous = lastBoardingRemaining, previous <= 1, boarding > previous + 1 {
-                    // 정류장에 있던 버스가 지나감. 다음 차량 숫자로 점프.
+                } else if boarding == 1 {
+                    if !didFireBoardingSoon {
+                        didFireBoardingSoon = true
+                        emit(.boardingSoon)
+                    }
+                } else if let previous = lastBoardingRemaining, previous <= 1, boarding >= previous + 2 {
+                    // 승차 정류소에 있던 버스가 통과함 (다음 차량 번호로 점프) -> 자동 승차 전환
                     confirmBoarded()
                 }
                 lastBoardingRemaining = boarding
@@ -127,25 +130,28 @@ final class GbisRideTracker {
                let alighting = alightingRealtime,
                let previousAlighting = lastAlightingRemaining,
                alighting < previousAlighting,
-               (boardingRealtime ?? lastBoardingRemaining ?? .max) <= 2 {
+               (boardingRealtime ?? lastBoardingRemaining ?? .max) <= 1 {
                 confirmBoarded()
             }
         }
 
-        if let alighting = alightingRealtime {
-            lastAlightingRemaining = alighting
-            if isOnBoardConfirmed, !hasArrived {
+        // 2. 승차 완료(탑승 중) 상태에서만 하차 도착 판정 수행
+        if isOnBoardConfirmed && !hasArrived {
+            if let alighting = alightingRealtime {
+                lastAlightingRemaining = alighting
                 if alighting == 0 {
                     hasArrived = true
                     emit(.arrived)
-                } else if alighting == 1, !didFireAlightSoon {
-                    didFireAlightSoon = true
-                    emit(.alightSoon)
+                } else if alighting == 1 {
+                    if !didFireAlightSoon {
+                        didFireAlightSoon = true
+                        emit(.alightSoon)
+                    }
                 }
+            } else if let previous = lastAlightingRemaining, previous == 0 {
+                hasArrived = true
+                emit(.arrived)
             }
-        } else if isOnBoardConfirmed, !hasArrived, (lastAlightingRemaining ?? seqDiff) == 0 {
-            hasArrived = true
-            emit(.arrived)
         }
     }
 

@@ -205,10 +205,13 @@ actor GbisAPIClient {
                 timeout: 5,
                 maxAttempts: 2
             )
-            if let stops = body.busArrivalItem?.remainingStops {
+            if let item = body.busArrivalItem,
+               let stops = item.remainingStops,
+               (item.routeId?.value == nil || item.routeId?.value == routeId) {
                 return max(0, stops)
             }
-            if let stops = body.busArrivalList?.items.first?.remainingStops {
+            if let match = body.busArrivalList?.items.first(where: { $0.routeId?.value == routeId }),
+               let stops = match.remainingStops {
                 return max(0, stops)
             }
         } catch {
