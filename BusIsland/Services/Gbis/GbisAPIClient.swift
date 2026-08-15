@@ -49,11 +49,22 @@ actor GbisAPIClient {
     private let stationCatalog: TagoStationClient
     private let tagoArrival: TagoArrivalClient
 
+    // In-memory cache for route stations [routeId: (savedAt, stations)]
+    private var routeStationsMemoryCache: [String: (savedAt: Date, stations: [GbisRouteStation])] = [:]
+    private let routeStationsDiskCacheFileName = "gbis_route_stations_cache_v1.json"
+
     init(session: URLSession = .shared, keyStore: APIKeyStore? = nil) {
         self.session = session
         self.keyStore = keyStore ?? APIKeyStore.shared
         self.stationCatalog = TagoStationClient.shared
         self.tagoArrival = TagoArrivalClient.shared
+        // Load persistent route stations disk cache on startup
+        if let disk = Self.readRouteStationsDiskCache(fileName: routeStationsDiskCacheFileName) {
+            for (rId, item) in disk {
+                self.routeStationsMemoryCache[rId] = (item.savedAt, item.stations)
+            }
+            AppLog.log("GbisAPIClient: loaded \(disk.count) cached route station maps from disk")
+        }
     }
 
     // MARK: - Routes / stations on route
@@ -69,12 +80,31 @@ actor GbisAPIClient {
     }
 
     func stations(on routeId: String) async throws -> [GbisRouteStation] {
+        // 1. 메모리 캐시 확인 (7일 유효)
+        if let cached = routeStationsMemoryCache[routeId],
+           Date().timeIntervalSince(cached.savedAt) < 604800,
+           !cached.stations.isEmpty {
+            AppLog.log("GbisAPIClient: cache hit for route stations \(routeId) (\(cached.stations.count) stops)")
+            return cached.stations
+        }
+
+        // 2. 네트워크 조회
         let body: GbisRouteStationListBody = try await get(
             path: "busrouteservice/v2/getBusRouteStationListv2",
-            query: ["routeId": routeId]
+            query: ["routeId": routeId],
+            timeout: 10
         )
-        let list = body.busRouteStationList?.items.compactMap { $0.toDomain() } ?? []
-        return list.sorted { $0.stationSeq < $1.stationSeq }
+        let list = (body.busRouteStationList?.items.compactMap { $0.toDomain() } ?? [])
+            .sorted { $0.stationSeq < $1.stationSeq }
+
+        if !list.isEmpty {
+            routeStationsMemoryCache[routeId] = (Date(), list)
+            Self.saveRouteStationsDiskCache(
+                fileName: routeStationsDiskCacheFileName,
+                cache: routeStationsMemoryCache
+            )
+        }
+        return list
     }
 
     // MARK: - Nearby / name (GBIS around + TAGO fallback)
@@ -112,7 +142,9 @@ actor GbisAPIClient {
         do {
             let body: GbisArrivalItemBody = try await get(
                 path: "busarrivalservice/v2/getBusArrivalListv2",
-                query: ["stationId": stationId]
+                query: ["stationId": stationId],
+                timeout: 6,
+                maxAttempts: 2
             )
             let items = body.busArrivalList?.items ?? []
             var seen = Set<String>()
@@ -154,7 +186,9 @@ actor GbisAPIClient {
                 query: [
                     "stationId": stationId,
                     "routeId": routeId,
-                ]
+                ],
+                timeout: 5,
+                maxAttempts: 2
             )
             if let stops = body.busArrivalItem?.remainingStops {
                 return max(0, stops)
@@ -169,7 +203,9 @@ actor GbisAPIClient {
         do {
             let listBody: GbisArrivalItemBody = try await get(
                 path: "busarrivalservice/v2/getBusArrivalListv2",
-                query: ["stationId": stationId]
+                query: ["stationId": stationId],
+                timeout: 5,
+                maxAttempts: 1
             )
             if let match = listBody.busArrivalList?.items.first(where: { $0.routeId?.value == routeId }),
                let stops = match.remainingStops {
@@ -192,7 +228,12 @@ actor GbisAPIClient {
 
     // MARK: - HTTP (data.go.kr)
 
-    private func get<Body: Decodable>(path: String, query: [String: String]) async throws -> Body {
+    private func get<Body: Decodable>(
+        path: String,
+        query: [String: String],
+        timeout: TimeInterval = 10,
+        maxAttempts: Int = 2
+    ) async throws -> Body {
         guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
             throw GbisAPIError.missingServiceKey
         }
@@ -227,10 +268,10 @@ actor GbisAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.timeoutInterval = 25
+        request.timeoutInterval = timeout
 
         var attempts = 0
-        while attempts < 3 {
+        while attempts < maxAttempts {
             attempts += 1
             do {
                 let (data, response) = try await session.data(for: request)
@@ -238,8 +279,8 @@ actor GbisAPIClient {
                 let bodyText = String(data: data, encoding: .utf8)
                 AppLog.log("GBIS HTTP \(status) \(path) \(AppLog.snippet(bodyText))")
                 if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                    if http.statusCode >= 500 && attempts < 3 {
-                        try? await Task.sleep(for: .milliseconds(800))
+                    if http.statusCode >= 500 && attempts < maxAttempts {
+                        try? await Task.sleep(for: .milliseconds(400))
                         continue
                     }
                     throw GbisAPIError.httpStatus(http.statusCode, bodyText)
@@ -259,19 +300,52 @@ actor GbisAPIClient {
                 }
                 return body
             } catch let error as GbisAPIError {
-                if case .httpStatus(let code, _) = error, code >= 500, attempts < 3 {
-                    try? await Task.sleep(for: .milliseconds(800))
+                if case .httpStatus(let code, _) = error, code >= 500, attempts < maxAttempts {
+                    try? await Task.sleep(for: .milliseconds(400))
                     continue
                 }
                 throw error
             } catch {
-                if attempts < 3 {
-                    try? await Task.sleep(for: .milliseconds(800))
+                if attempts < maxAttempts {
+                    try? await Task.sleep(for: .milliseconds(400))
                     continue
                 }
                 throw GbisAPIError.decodingFailed
             }
         }
         throw GbisAPIError.emptyResult
+    }
+
+    private struct PersistentRouteStationsEntry: Codable {
+        let savedAt: Date
+        let stations: [GbisRouteStation]
+    }
+
+    private static func routeStationsCacheURL(fileName: String) -> URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent(fileName)
+    }
+
+    private static func readRouteStationsDiskCache(fileName: String) -> [String: PersistentRouteStationsEntry]? {
+        guard let url = routeStationsCacheURL(fileName: fileName),
+              let data = try? Data(contentsOf: url),
+              let decoded = try? JSONDecoder().decode([String: PersistentRouteStationsEntry].self, from: data)
+        else { return nil }
+        return decoded
+    }
+
+    private static func saveRouteStationsDiskCache(
+        fileName: String,
+        cache: [String: (savedAt: Date, stations: [GbisRouteStation])]
+    ) {
+        DispatchQueue.global(qos: .utility).async {
+            guard let url = routeStationsCacheURL(fileName: fileName) else { return }
+            var codableMap: [String: PersistentRouteStationsEntry] = [:]
+            for (rId, item) in cache {
+                codableMap[rId] = PersistentRouteStationsEntry(savedAt: item.savedAt, stations: item.stations)
+            }
+            if let data = try? JSONEncoder().encode(codableMap) {
+                try? data.write(to: url, options: .atomic)
+            }
+        }
     }
 }

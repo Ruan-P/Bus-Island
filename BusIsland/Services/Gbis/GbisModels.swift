@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - Domain models
 
-struct GbisStation: Identifiable, Hashable, Sendable {
+struct GbisStation: Identifiable, Hashable, Sendable, Codable {
     var id: String { stationId }
     let stationId: String
     let stationName: String
@@ -51,7 +51,7 @@ struct GbisStation: Identifiable, Hashable, Sendable {
     }
 }
 
-struct GbisRoute: Identifiable, Hashable, Sendable {
+struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
     var id: String { routeId }
     let routeId: String
     let routeName: String
@@ -66,7 +66,7 @@ struct GbisRoute: Identifiable, Hashable, Sendable {
     }
 }
 
-struct GbisRouteStation: Identifiable, Hashable, Sendable {
+struct GbisRouteStation: Identifiable, Hashable, Sendable, Codable {
     var id: String { "\(stationId)-\(stationSeq)" }
     let stationId: String
     let stationName: String

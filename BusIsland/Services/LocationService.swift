@@ -75,8 +75,15 @@ public final class LocationService: NSObject {
         }
     }
 
-    /// One-shot current location. Waits for permission first.
-    public func currentLocation(timeoutSeconds: TimeInterval = 15) async throws -> CLLocation {
+    public var cachedLocation: CLLocation? {
+        if let loc = manager.location, Date().timeIntervalSince(loc.timestamp) < 120 {
+            return loc
+        }
+        return nil
+    }
+
+    /// One-shot current location with fast cached-location shortcut. Waits for permission first.
+    public func currentLocation(timeoutSeconds: TimeInterval = 8, allowCached: Bool = true) async throws -> CLLocation {
         let status = try await ensureWhenInUseAuthorization()
         switch status {
         case .authorizedAlways, .authorizedWhenInUse:
@@ -89,10 +96,19 @@ public final class LocationService: NSObject {
             throw LocationServiceError.unavailable
         }
 
+        // 1. 캐시된 유효 위치(2분 이내)가 있으면 즉시 반환 (0ms)
+        if allowCached, let recent = cachedLocation {
+            AppLog.log("LocationService: using recent cached location (\(String(format: "%.1f", Date().timeIntervalSince(recent.timestamp)))s old)")
+            return recent
+        }
+
         if locationContinuation != nil {
             locationContinuation?.resume(throwing: LocationServiceError.unavailable)
             locationContinuation = nil
         }
+
+        // 2. 빠른 위치 수신을 위해 HundredMeters 설정으로 요청
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
 
         return try await withCheckedThrowingContinuation { continuation in
             self.locationContinuation = continuation
@@ -102,7 +118,13 @@ public final class LocationService: NSObject {
                 try? await Task.sleep(for: .seconds(timeoutSeconds))
                 if let pending = self.locationContinuation {
                     self.locationContinuation = nil
-                    pending.resume(throwing: LocationServiceError.timedOut)
+                    // 타임아웃 시 이전 위치라도 있으면 반환
+                    if let fallback = self.manager.location {
+                        AppLog.log("LocationService: timed out fresh fix, using fallback manager location")
+                        pending.resume(returning: fallback)
+                    } else {
+                        pending.resume(throwing: LocationServiceError.timedOut)
+                    }
                 }
             }
         }

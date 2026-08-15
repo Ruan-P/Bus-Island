@@ -681,6 +681,9 @@ final class BusRideViewModel {
     var errorMessage: String?
     var activitiesEnabled = true
 
+    // Quick in-memory cache for station arriving routes [stationId: (savedAt, routes)]
+    private var stationRoutesCache: [String: (savedAt: Date, routes: [GbisRoute])] = [:]
+
     var destinationCandidates: [GbisRouteStation] {
         guard let boarding = selectedStation else { return [] }
         if let boardingOnRoute = routeStations.first(where: { $0.stationId == boarding.stationId }) {
@@ -747,9 +750,25 @@ final class BusRideViewModel {
             selectedRoute = nil
             selectedDestination = nil
             routeStations = []
-            let routes = try await client.routes(at: station.stationId)
+
+            // 1. 프리페치/캐시된 도착 노선 확인 (30초 TTL)
+            let routes: [GbisRoute]
+            if let cached = stationRoutesCache[station.stationId],
+               Date().timeIntervalSince(cached.savedAt) < 30,
+               !cached.routes.isEmpty {
+                routes = cached.routes
+                AppLog.log("selectNearby: using instant cached routes (\(routes.count))")
+            } else {
+                routes = try await client.routes(at: station.stationId)
+                stationRoutesCache[station.stationId] = (Date(), routes)
+            }
+
             routeResults = routes
             AppLog.log("selectNearby routes count=\(routes.count)")
+
+            // 상위 도착 노선의 정류장 목록을 백그라운드에서 사전 로딩
+            prefetchRouteStops(for: Array(routes.prefix(3)))
+
             if routes.count == 1 {
                 try await selectRouteInternal(routes[0])
             }
@@ -848,6 +867,37 @@ final class BusRideViewModel {
             nearbyStations = results
             locationStatusMessage = "근처 \(results.count)개 정류장 발견"
             AppLog.log("nearby loaded \(results.count) first=\(results.first.map { "\($0.stationName)/\($0.stationId)" } ?? "-")")
+
+            // 상위 2개 근처 정류장의 도착 노선을 백그라운드에서 사전 조회
+            prefetchNearbyRoutes(for: Array(results.prefix(2)))
+        }
+    }
+
+    private func prefetchNearbyRoutes(for stations: [GbisStation]) {
+        for station in stations {
+            Task { [weak self] in
+                guard let self else { return }
+                if let cached = await self.stationRoutesCache[station.stationId],
+                   Date().timeIntervalSince(cached.savedAt) < 30 {
+                    return
+                }
+                if let routes = try? await self.client.routes(at: station.stationId) {
+                    await MainActor.run {
+                        self.stationRoutesCache[station.stationId] = (Date(), routes)
+                    }
+                    AppLog.log("prefetch: cached \(routes.count) routes for station \(station.stationName)")
+                    self.prefetchRouteStops(for: Array(routes.prefix(2)))
+                }
+            }
+        }
+    }
+
+    private func prefetchRouteStops(for routes: [GbisRoute]) {
+        for route in routes {
+            Task { [weak self] in
+                guard let self else { return }
+                _ = try? await self.client.stations(on: route.routeId)
+            }
         }
     }
 

@@ -21,10 +21,17 @@ actor TagoStationClient {
 
     private var cache: [GbisStation] = []
     private var cacheLoadedAt: Date?
+    private let cacheFileName = "tago_stations_cache_v2.json"
 
     init(session: URLSession = .shared, keyStore: APIKeyStore? = nil) {
         self.session = session
         self.keyStore = keyStore ?? APIKeyStore.shared
+        // Try fast initialization from disk cache
+        if let disk = Self.readDiskCache(fileName: cacheFileName) {
+            self.cache = disk.stations
+            self.cacheLoadedAt = disk.savedAt
+            AppLog.log("TagoStationClient: fast loaded \(disk.stations.count) stations from disk cache")
+        }
     }
 
     func searchStations(keyword: String) async throws -> [GbisStation] {
@@ -75,14 +82,25 @@ actor TagoStationClient {
         return Array(result.prefix(40))
     }
 
-    /// 안양/의왕/군포 정류소 목록을 병렬(Parallel TaskGroup)로 초고속 일괄 로딩.
+    /// 안양/의왕/군포 정류소 목록을 병렬(Parallel TaskGroup)로 초고속 일괄 로딩 (디스크 영구 캐시 우선).
     private func loadAllStations() async throws -> [GbisStation] {
+        // 1. 메모리 캐시 확인 (7일 유효)
         if let cacheLoadedAt,
-           Date().timeIntervalSince(cacheLoadedAt) < 86400,
+           Date().timeIntervalSince(cacheLoadedAt) < 604800,
            !cache.isEmpty {
             return cache
         }
 
+        // 2. 디스크 캐시 확인
+        if let disk = Self.readDiskCache(fileName: cacheFileName),
+           Date().timeIntervalSince(disk.savedAt) < 604800,
+           !disk.stations.isEmpty {
+            self.cache = disk.stations
+            self.cacheLoadedAt = disk.savedAt
+            return disk.stations
+        }
+
+        // 3. 네트워크 병렬 다운로드
         let startTime = Date()
         var merged: [String: GbisStation] = [:]
 
@@ -103,13 +121,51 @@ actor TagoStationClient {
 
         let list = Array(merged.values)
         if list.isEmpty {
+            // 네트워크 실패 시 만료된 디스크 캐시라도 있으면 fallback
+            if let disk = Self.readDiskCache(fileName: cacheFileName), !disk.stations.isEmpty {
+                self.cache = disk.stations
+                self.cacheLoadedAt = disk.savedAt
+                return disk.stations
+            }
             throw GbisAPIError.emptyResult
         }
+
         cache = list
         cacheLoadedAt = Date()
         let elapsed = String(format: "%.2f", Date().timeIntervalSince(startTime))
         AppLog.log("TAGO parallel load done in \(elapsed)s (total \(list.count) stations)")
+
+        // 비동기 디스크 캐시 저장
+        Self.writeDiskCache(fileName: cacheFileName, stations: list)
+
         return list
+    }
+
+    private struct PersistentStationCache: Codable {
+        let savedAt: Date
+        let stations: [GbisStation]
+    }
+
+    private static func cacheFileURL(fileName: String) -> URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent(fileName)
+    }
+
+    private static func readDiskCache(fileName: String) -> PersistentStationCache? {
+        guard let url = cacheFileURL(fileName: fileName),
+              let data = try? Data(contentsOf: url),
+              let decoded = try? JSONDecoder().decode(PersistentStationCache.self, from: data)
+        else { return nil }
+        return decoded
+    }
+
+    private static func writeDiskCache(fileName: String, stations: [GbisStation]) {
+        DispatchQueue.global(qos: .utility).async {
+            guard let url = cacheFileURL(fileName: fileName) else { return }
+            let cacheObj = PersistentStationCache(savedAt: Date(), stations: stations)
+            if let data = try? JSONEncoder().encode(cacheObj) {
+                try? data.write(to: url, options: .atomic)
+            }
+        }
     }
 
     private func fetchAllPages(cityCode: Int) async throws -> [TagoStationRow] {
