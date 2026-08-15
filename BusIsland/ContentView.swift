@@ -922,16 +922,6 @@ struct ContentView: View {
     }
 }
 
-    private var startGuideMessage: String {
-        if !viewModel.hasAPIKey { return "API 키가 등록되어 있지 않습니다. 설정에서 키를 확인하세요." }
-        if !viewModel.activitiesEnabled { return "기기 설정에서 Live Activities를 허용해 주세요." }
-        if viewModel.selectedStation == nil { return "1단계에서 승차 정류장을 선택해 주세요." }
-        if viewModel.selectedRoute == nil { return "2단계에서 탑승할 버스를 선택해 주세요." }
-        if viewModel.selectedDestination == nil { return "3단계에서 하차 정류장을 선택해 주세요." }
-        return "알림을 시작할 준비가 되었습니다."
-    }
-}
-
 // MARK: - ViewModel
 
 @MainActor

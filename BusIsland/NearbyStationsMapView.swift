@@ -2,7 +2,7 @@ import MapKit
 import SwiftUI
 
 struct NearbyStationsMapView: View {
-    @Bindable var viewModel: BusRideViewModel
+    var viewModel: BusRideViewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
