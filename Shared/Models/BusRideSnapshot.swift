@@ -39,10 +39,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
     }
 
     public var activeStationName: String {
-        if let currentStation, !currentStation.isEmpty {
-            return currentStation
-        }
-        return isOnBoard ? destination : (boarding.isEmpty ? destination : boarding)
+        isOnBoard ? destination : (boarding.isEmpty ? destination : boarding)
     }
 
     public var activityState: BusRideActivityAttributes.ContentState {

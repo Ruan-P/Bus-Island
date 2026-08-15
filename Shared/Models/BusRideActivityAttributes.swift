@@ -43,12 +43,9 @@ public struct BusRideActivityAttributes: ActivityAttributes {
             isOnBoard ? remainingStops : boardingRemainingStops
         }
 
-        /// Prominently tracked target station for the active phase.
+        /// Prominently tracked target station for the active phase (Boarding Stop when waiting, Destination Stop when onboard).
         public var activeStationName: String {
-            if let currentStation, !currentStation.isEmpty {
-                return currentStation
-            }
-            return isOnBoard ? destination : (boarding.isEmpty ? destination : boarding)
+            isOnBoard ? destination : (boarding.isEmpty ? destination : boarding)
         }
 
         /// Role label for the actively tracked station.

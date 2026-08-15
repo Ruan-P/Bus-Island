@@ -1223,11 +1223,7 @@ final class BusRideViewModel {
     func markAsBoarded() async {
         await run {
             if let updated = tracker.markAsBoarded() {
-                try await activityService.update(
-                    with: updated,
-                    alertTitle: "승차함",
-                    alertBody: "\(updated.destination)까지 하차 안내를 시작합니다."
-                )
+                try await activityService.update(with: updated)
                 snapshot = updated
                 persistSession()
             }
@@ -1250,14 +1246,10 @@ final class BusRideViewModel {
                 try await activityService.update(
                     with: updated,
                     alertTitle: "승차 1정거장",
-                    alertBody: "\(updated.boarding)에서 승차한 뒤 앱에서 승차를 눌러 주세요."
+                    alertBody: "\(updated.boarding)에서 승차하세요. 앱에서 승차를 눌러 주세요."
                 )
             case .boarded:
-                try await activityService.update(
-                    with: updated,
-                    alertTitle: "승차 안내",
-                    alertBody: "\(updated.destination)까지 하차 안내를 시작합니다."
-                )
+                try await activityService.update(with: updated)
             case .alightSoon:
                 notifications.notifyAlightSoon(route: updated.routeNumber, station: updated.destination)
                 try await activityService.update(
