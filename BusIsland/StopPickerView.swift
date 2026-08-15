@@ -172,26 +172,59 @@ struct RoutePickerView: View {
                                 onSelect(route)
                                 dismiss()
                             } label: {
-                                HStack(spacing: 14) {
+                                HStack(spacing: 12) {
                                     Image(systemName: "bus.fill")
                                         .font(.system(size: 15))
                                         .foregroundStyle(isSelected ? Color.white : Color.blue)
-                                        .frame(width: 32, height: 32)
-                                        .background(isSelected ? Color.blue : Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                                        .frame(width: 34, height: 34)
+                                        .background(isSelected ? Color.blue : Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
 
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(route.routeName)
-                                            .font(.system(size: 17, weight: .bold, design: .rounded))
-                                            .foregroundStyle(.primary)
-                                        if !route.subtitle.isEmpty {
-                                            Text(route.subtitle)
+                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                            Text(route.routeName)
+                                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                .foregroundStyle(.primary)
+                                            if let typeName = route.routeTypeName, !typeName.isEmpty {
+                                                Text(typeName)
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                        if let region = route.regionName, !region.isEmpty {
+                                            Text(region)
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                                 .lineLimit(1)
                                         }
                                     }
 
-                                    Spacer()
+                                    Spacer(minLength: 8)
+
+                                    // 실시간 도착 상태 배지 (몇 정거장 전 / 약 N분 후)
+                                    if let badgeText = route.arrivalBadgeText {
+                                        let isSoon = (route.remainingStops ?? 99) <= 2
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text(badgeText)
+                                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                                .foregroundStyle(isSoon ? Color.orange : Color.teal)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(
+                                                    (isSoon ? Color.orange : Color.teal).opacity(0.14),
+                                                    in: Capsule()
+                                                )
+                                            if let timeText = route.arrivalTimeText {
+                                                Text(timeText)
+                                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                                    .foregroundStyle(.secondary)
+                                                    .monospacedDigit()
+                                            }
+                                        }
+                                    } else {
+                                        Text("운행 정보 대기")
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                    }
 
                                     if isSelected {
                                         Image(systemName: "checkmark.circle.fill")
@@ -203,7 +236,7 @@ struct RoutePickerView: View {
                             }
                         }
                     } header: {
-                        Text("검색된 노선 · \(filtered.count)개")
+                        Text("도착 예정 노선 · 총 \(filtered.count)개")
                             .font(.caption.bold())
                     }
                 }

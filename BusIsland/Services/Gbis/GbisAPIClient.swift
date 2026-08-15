@@ -157,16 +157,31 @@ actor GbisAPIClient {
                 let name = item.routeName?.value
                 let dest = item.routeDestName?.value
                 let displayName = (name != nil && !name!.isEmpty) ? name! : (dest != nil && !dest!.isEmpty ? dest! : "노선 \(routeId)")
+                let stops = item.locationNo1?.intValue
+                let mins = item.predictTime1?.intValue
                 
                 routes.append(
                     GbisRoute(
                         routeId: routeId,
                         routeName: displayName,
                         routeTypeName: nil,
-                        regionName: dest
+                        regionName: dest,
+                        remainingStops: stops,
+                        predictTimeMinutes: mins
                     )
                 )
             }
+
+            // 도착 임박(남은 정류장 적은 순) 순으로 우선 정렬
+            routes.sort { (a, b) -> Bool in
+                let aStops = a.remainingStops ?? Int.max
+                let bStops = b.remainingStops ?? Int.max
+                if aStops != bStops {
+                    return aStops < bStops
+                }
+                return a.routeName < b.routeName
+            }
+
             AppLog.log("routes(at:) parsed=\(routes.count) rawItems=\(items.count)")
             return routes
         } catch {

@@ -57,12 +57,46 @@ struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
     let routeName: String
     let routeTypeName: String?
     let regionName: String?
+    let remainingStops: Int?
+    let predictTimeMinutes: Int?
+
+    init(
+        routeId: String,
+        routeName: String,
+        routeTypeName: String? = nil,
+        regionName: String? = nil,
+        remainingStops: Int? = nil,
+        predictTimeMinutes: Int? = nil
+    ) {
+        self.routeId = routeId
+        self.routeName = routeName
+        self.routeTypeName = routeTypeName
+        self.regionName = regionName
+        self.remainingStops = remainingStops
+        self.predictTimeMinutes = predictTimeMinutes
+    }
 
     var subtitle: String {
         [routeTypeName, regionName]
             .compactMap { $0 }
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
+    }
+
+    var arrivalBadgeText: String? {
+        guard let remainingStops else { return nil }
+        if remainingStops <= 0 {
+            return "곧 도착"
+        } else if remainingStops == 1 {
+            return "1정거장 전"
+        } else {
+            return "\(remainingStops)정거장 전"
+        }
+    }
+
+    var arrivalTimeText: String? {
+        guard let predictTimeMinutes, predictTimeMinutes > 0 else { return nil }
+        return "약 \(predictTimeMinutes)분"
     }
 }
 
