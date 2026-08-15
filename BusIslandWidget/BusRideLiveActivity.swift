@@ -332,12 +332,6 @@ struct BusRideLiveActivity: Widget {
                         .font(.system(size: 15, weight: .heavy))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-
-                    Spacer()
-
-                    Text(state.isOnBoard ? "\(state.remainingStops)정거장 남음" : "\(state.boardingRemainingStops)정거장 전")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(activeCountColor(for: state))
                 }
             }
             .padding(.horizontal, 12)
