@@ -1267,9 +1267,9 @@ final class BusRideViewModel {
                 snapshot = updated
                 isActivityRunning = true
                 persistSession()
-                try? await Task.sleep(for: .seconds(15))
+                try? await Task.sleep(for: .seconds(5))
                 locationService.stopRideBackgroundUpdates()
-                await activityService.end()
+                await activityService.end(with: updated, dismissalPolicy: .immediate)
                 tracker.reset()
                 sessionStore.clear()
                 isActivityRunning = false

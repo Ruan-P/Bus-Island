@@ -42,6 +42,7 @@ public final class LiveActivityService {
             routeNumber: state.routeNumber,
             boarding: state.boarding,
             destination: state.destination,
+            currentStation: state.currentStation,
             boardingRemainingStops: state.boardingRemainingStops,
             remainingStops: state.remainingStops,
             totalRideStops: state.totalRideStops
@@ -96,10 +97,11 @@ public final class LiveActivityService {
         activeActivityID = activity.id
     }
 
-    public func end() async {
+    public func end(with snapshot: BusRideSnapshot? = nil, dismissalPolicy: ActivityUIDismissalPolicy = .immediate) async {
         for activity in Activity<BusRideActivityAttributes>.activities {
-            let content = ActivityContent(state: activity.content.state, staleDate: nil)
-            await activity.end(content, dismissalPolicy: .immediate)
+            let state = snapshot?.activityState ?? activity.content.state
+            let content = ActivityContent(state: state, staleDate: nil)
+            await activity.end(content, dismissalPolicy: dismissalPolicy)
         }
         activeActivityID = nil
     }
