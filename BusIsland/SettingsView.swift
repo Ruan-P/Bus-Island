@@ -12,19 +12,25 @@ struct SettingsView: View {
             // MARK: - API Key Section
             Section {
                 HStack {
-                    Image(systemName: "key.fill")
-                        .foregroundStyle(.blue)
-                    Text("API 키 상태")
+                    HStack(spacing: 6) {
+                        Text("🔑")
+                            .font(.system(size: 13))
+                        Text("API KEY STATUS")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                    }
                     Spacer()
-                    Text(usingBaked ? "빌드 기본 키" : "사용자 지정 키")
-                        .font(.subheadline)
-                        .foregroundStyle(usingBaked ? Color.secondary : Color.blue)
+                    Text(usingBaked ? "[BUILT-IN KEY]" : "[CUSTOM USER KEY]")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(usingBaked ? Color.secondary : Color(red: 0.25, green: 0.55, blue: 1.0))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background((usingBaked ? Color.secondary : Color(red: 0.25, green: 0.55, blue: 1.0)).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                 }
 
                 SecureField("serviceKey 입력 (공공데이터포털)", text: $serviceKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .font(.body.monospaced())
+                    .font(.system(size: 13, design: .monospaced))
 
                 Button {
                     let trimmed = serviceKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -32,59 +38,109 @@ struct SettingsView: View {
                     refreshState()
                     savedBanner = true
                 } label: {
-                    Text("새 키 저장하기")
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 6) {
+                        Text("💾")
+                            .font(.system(size: 12))
+                        Text("SAVE NEW KEY")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.blue)
+                .tint(Color(red: 0.25, green: 0.55, blue: 1.0))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .disabled(serviceKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if !usingBaked {
-                    Button("기본 빌드 키로 재설정", role: .destructive) {
+                    Button(role: .destructive) {
                         APIKeyStore.shared.serviceKey = nil
                         serviceKey = ""
                         refreshState()
+                    } label: {
+                        Text("RESET TO DEFAULT KEY")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                            .frame(maxWidth: .infinity)
                     }
                 }
             } header: {
-                Text("GBIS / TAGO API 설정")
+                Text("◆ GBIS / TAGO API CONFIG")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
             } footer: {
                 Text("공공데이터포털 인증키(Decoding / Encoding) 모두 지원합니다. 키가 없더라도 빌드 기본 키로 동작합니다.")
-                    .font(.caption2)
+                    .font(.system(size: 10, design: .monospaced))
             }
 
             // MARK: - Developer / Debug Tools
-            Section("개발 및 진단 도구") {
+            Section {
                 NavigationLink {
                     DebugConsoleView()
                 } label: {
                     HStack {
-                        Label("디버그 로그 콘솔", systemImage: "terminal.fill")
-                            .foregroundStyle(.primary)
+                        HStack(spacing: 6) {
+                            Text("📟")
+                                .font(.system(size: 13))
+                            Text("DEBUG LOG CONSOLE")
+                                .font(.system(size: 12, weight: .black, design: .monospaced))
+                        }
                         Spacer()
-                        Text("\(debugLog.lines.count)")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 8)
+                        Text("\(debugLog.lines.count) LINES")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
+                            .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
+                            .background(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                     }
                 }
+            } header: {
+                Text("◆ DEV & DIAGNOSTIC")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
             }
 
             // MARK: - App Information
-            Section("앱 정보") {
-                LabeledContent("앱 이름", value: "BusIsland")
-                LabeledContent("버전", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-                LabeledContent("빌드", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
-                LabeledContent("디스플레이", value: "Dynamic Island + Live Activity")
+            Section {
+                HStack {
+                    Text("NAME")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    Spacer()
+                    Text("BusIsland")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .foregroundStyle(.primary)
+                }
+                HStack {
+                    Text("VERSION")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    Spacer()
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("BUILD")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    Spacer()
+                    Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("DISPLAY")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    Spacer()
+                    Text("Dynamic Island + Live Activity")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("◆ SYSTEM INFO")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
             }
         }
-        .navigationTitle("설정")
+        .navigationTitle("SETTINGS")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { refreshState() }
         .alert("저장 완료", isPresented: $savedBanner) {
-            Button("확인") { dismiss() }
+            Button("확인", role: .cancel) { dismiss() }
         } message: {
             Text("API 인증키가 안전하게 저장되었습니다.")
         }

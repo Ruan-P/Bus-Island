@@ -16,15 +16,26 @@ struct NearbyStationsMapView: View {
             stationBottomDrawer
                 .frame(maxHeight: 280)
         }
-        .navigationTitle("내 주변 정류장")
+        .navigationTitle("MAP RADAR")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await viewModel.loadNearbyStations() }
                 } label: {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 14, weight: .bold))
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("RADAR")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.15), in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.35), lineWidth: 1)
+                    )
                 }
                 .disabled(viewModel.isBusy)
             }
@@ -43,17 +54,21 @@ struct NearbyStationsMapView: View {
         .overlay {
             if viewModel.isBusy {
                 ZStack {
-                    Color.black.opacity(0.15)
+                    Color.black.opacity(0.25)
                         .ignoresSafeArea()
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         ProgressView()
                             .tint(.white)
-                        Text("주변 정류장 탐색 중…")
-                            .font(.footnote.weight(.medium))
+                        Text("SCANNING NEARBY...")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
                             .foregroundStyle(.white)
                     }
-                    .padding(18)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .padding(20)
+                    .background(Color(white: 0.15).opacity(0.95), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.5), lineWidth: 1.5)
+                    )
                 }
             }
         }
@@ -66,24 +81,34 @@ struct NearbyStationsMapView: View {
             ForEach(viewModel.nearbyStations) { station in
                 if let coordinate = station.coordinate {
                     Annotation(station.stationName, coordinate: coordinate, anchor: .bottom) {
-                        VStack(spacing: 3) {
+                        VStack(spacing: 2) {
                             let isSelected = (station.stationId == selectedStationID)
-                            Image(systemName: "bus.fill")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(8)
-                                .background(
-                                    isSelected ? Color.orange : Color.teal,
-                                    in: Circle()
-                                )
-                                .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+                            VStack(spacing: 1) {
+                                Text("STN")
+                                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.white)
+                                Image(systemName: "bus.fill")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                            .padding(6)
+                            .background(
+                                isSelected ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 0.15, green: 0.85, blue: 0.70),
+                                in: RoundedRectangle(cornerRadius: 6)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 2)
 
                             if let meters = station.distanceMeters {
                                 Text(distanceLabel(meters))
-                                    .font(.system(size: 10, weight: .bold))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(.ultraThinMaterial, in: Capsule())
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(Color(white: 0.1).opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
+                                    .foregroundStyle(.white)
                             }
                         }
                     }
@@ -109,27 +134,36 @@ struct NearbyStationsMapView: View {
     private var stationBottomDrawer: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("주변 정류장 목록")
-                    .font(.subheadline.bold())
+                HStack(spacing: 6) {
+                    Text("◆")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
+                    Text("RADAR TARGETS (\(viewModel.nearbyStations.count))")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                }
                 Spacer()
                 if let message = viewModel.locationStatusMessage {
-                    Text(message)
-                        .font(.caption2)
+                    Text("› \(message)")
+                        .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 8)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .overlay(
+                Rectangle()
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            )
 
             if viewModel.nearbyStations.isEmpty && !viewModel.isBusy {
                 VStack(spacing: 8) {
                     Spacer()
-                    Image(systemName: "location.slash")
+                    Text("📍")
                         .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
                     Text("주변에 정류장이 없거나 위치 정보를 불러올 수 없습니다.")
-                        .font(.footnote)
+                        .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -144,26 +178,33 @@ struct NearbyStationsMapView: View {
                             }
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "mappin.circle.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(.teal)
+                                VStack(spacing: 1) {
+                                    Text("STN")
+                                        .font(.system(size: 7, weight: .black, design: .monospaced))
+                                        .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
+                                    Image(systemName: "mappin.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
+                                }
+                                .frame(width: 30, height: 30)
+                                .background(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(station.stationName)
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(.system(size: 14, weight: .bold))
                                         .foregroundStyle(.primary)
                                     HStack(spacing: 6) {
                                         if let meters = station.distanceMeters {
-                                            Text(distanceLabel(meters))
-                                                .font(.caption2.bold().monospacedDigit())
-                                                .foregroundStyle(.teal)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.teal.opacity(0.12), in: Capsule())
+                                            Text("[ \(distanceLabel(meters)) ]")
+                                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                                .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(Color(red: 0.15, green: 0.85, blue: 0.70).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                                         }
                                         if !station.subtitle.isEmpty {
-                                            Text(station.subtitle)
-                                                .font(.caption2)
+                                            Text("› \(station.subtitle)")
+                                                .font(.system(size: 11, design: .monospaced))
                                                 .foregroundStyle(.secondary)
                                         }
                                     }
@@ -171,9 +212,9 @@ struct NearbyStationsMapView: View {
 
                                 Spacer()
 
-                                Image(systemName: "chevron.right")
-                                    .font(.caption2.bold())
-                                    .foregroundStyle(.tertiary)
+                                Text("SELECT ▶")
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .foregroundStyle(Color(red: 0.15, green: 0.85, blue: 0.70))
                             }
                             .padding(.vertical, 2)
                         }
