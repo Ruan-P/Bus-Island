@@ -193,11 +193,11 @@ struct BusRideLiveActivity: Widget {
         .frame(height: 10)
     }
 
-    // MARK: - Authentic Apple Material & Liquid Glass Lock Screen Card
+    // MARK: - Authentic Apple Material & Liquid Glass Lock Screen Card (Spacious & Breathable)
     @ViewBuilder
     private func lockScreenCard(state: BusRideActivityAttributes.ContentState) -> some View {
-        VStack(spacing: 12) {
-            // MARK: - 1. Header: Bus Route Badge + Live Status + Scoreboard Counter
+        VStack(spacing: 14) {
+            // MARK: - 1. Header: Bus Route Badge + Live Status + Large Countdown
             HStack(alignment: .center) {
                 HStack(spacing: 10) {
                     // Refined Glass Route Emblem
@@ -208,7 +208,7 @@ struct BusRideLiveActivity: Widget {
                                 RoundedRectangle(cornerRadius: 11, style: .continuous)
                                     .stroke(
                                         LinearGradient(
-                                            colors: [Color.white.opacity(0.40), Color.white.opacity(0.10)],
+                                            colors: [Color.white.opacity(0.45), Color.white.opacity(0.10)],
                                             startPoint: .top,
                                             endPoint: .bottom
                                         ),
@@ -225,7 +225,7 @@ struct BusRideLiveActivity: Widget {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(state.routeNumber)
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(.system(size: 21, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
 
                         HStack(spacing: 5) {
@@ -250,7 +250,7 @@ struct BusRideLiveActivity: Widget {
                             .foregroundStyle(activeCountColor(for: state))
                         Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(.white.opacity(0.88))
                     }
                     Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
                         .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -275,27 +275,20 @@ struct BusRideLiveActivity: Widget {
                 )
             }
 
-            // MARK: - 2. Clean Information Panels (Location & Target)
-            VStack(spacing: 6) {
-                // Real-time Current Location Row
+            // MARK: - 2. Spacious Transit Flow (Clean & Unboxed)
+            VStack(spacing: 9) {
+                // Real-time Current Location Line
                 HStack(spacing: 8) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(AppleGlassTheme.teal)
-                        Text("현재 위치")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(AppleGlassTheme.teal)
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(AppleGlassTheme.teal.opacity(0.15))
-                    )
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(AppleGlassTheme.teal)
+
+                    Text("현재 위치")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
 
                     Text(state.currentStation ?? (state.isOnBoard ? state.destination : state.boarding))
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
@@ -304,68 +297,51 @@ struct BusRideLiveActivity: Widget {
                     Text(state.isOnBoard ? "운행 중" : "접근 중")
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2.5)
+                        .background(Color.white.opacity(0.08), in: Capsule())
                 }
 
-                // Target Destination Goal Row
+                // Target Destination Goal Line
                 HStack(spacing: 8) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flag.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
-                        Text(state.activeStationRole)
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
-                    }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill((state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal).opacity(0.18))
-                    )
+                    Image(systemName: "flag.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
+
+                    Text(state.activeStationRole)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.teal)
 
                     Text(state.activeStationName)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
                         .lineLimit(1)
 
                     Spacer()
-
-                    Text(state.isOnBoard ? "\(state.remainingStops)정거장 남음" : "\(state.boardingRemainingStops)정거장 전")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(activeCountColor(for: state))
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 0.75)
-            )
+            .padding(.horizontal, 4)
 
             // MARK: - 3. Apple Glass Journey Progress Tube
             appleProgressBar(state: state)
                 .padding(.horizontal, 2)
+                .padding(.top, 2)
         }
-        .padding(16)
+        .padding(18)
         .background(
             ZStack {
                 // Deep Obsidian Glass Material Base
-                Color(white: 0.11).opacity(0.88)
+                Color(white: 0.11).opacity(0.90)
 
                 // Ambient Radial Light Tint
                 RadialGradient(
                     colors: [
-                        (state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.azure).opacity(0.12),
+                        (state.isOnBoard ? AppleGlassTheme.amber : AppleGlassTheme.azure).opacity(0.14),
                         Color.clear
                     ],
                     center: .topLeading,
                     startRadius: 10,
-                    endRadius: 180
+                    endRadius: 190
                 )
             }
             .clipShape(ContainerRelativeShape())
@@ -375,7 +351,7 @@ struct BusRideLiveActivity: Widget {
             ContainerRelativeShape()
                 .stroke(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.24), Color.white.opacity(0.04)],
+                        colors: [Color.white.opacity(0.26), Color.white.opacity(0.04)],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
