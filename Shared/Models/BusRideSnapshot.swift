@@ -5,6 +5,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
     public var routeNumber: String
     public var boarding: String
     public var destination: String
+    public var currentStation: String?
     public var boardingRemainingStops: Int
     public var remainingStops: Int
     public var totalRideStops: Int
@@ -14,6 +15,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         routeNumber: String,
         boarding: String = "",
         destination: String,
+        currentStation: String? = nil,
         boardingRemainingStops: Int = 0,
         remainingStops: Int,
         totalRideStops: Int = 0
@@ -22,6 +24,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         self.routeNumber = routeNumber
         self.boarding = boarding
         self.destination = destination
+        self.currentStation = currentStation
         self.boardingRemainingStops = boardingRemainingStops
         self.remainingStops = remainingStops
         self.totalRideStops = totalRideStops
@@ -35,11 +38,19 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         isOnBoard ? remainingStops : boardingRemainingStops
     }
 
+    public var activeStationName: String {
+        if let currentStation, !currentStation.isEmpty {
+            return currentStation
+        }
+        return isOnBoard ? destination : (boarding.isEmpty ? destination : boarding)
+    }
+
     public var activityState: BusRideActivityAttributes.ContentState {
         .init(
             routeNumber: routeNumber,
             boarding: boarding,
             destination: destination,
+            currentStation: currentStation,
             boardingRemainingStops: boardingRemainingStops,
             remainingStops: remainingStops,
             totalRideStops: totalRideStops
@@ -51,6 +62,7 @@ public struct BusRideSnapshot: Codable, Hashable, Sendable, Identifiable {
         routeNumber: "3412",
         boarding: "의왕역",
         destination: "사당역",
+        currentStation: "의왕역",
         boardingRemainingStops: 2,
         remainingStops: 6,
         totalRideStops: 8

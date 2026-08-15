@@ -61,6 +61,31 @@ struct BusRideLiveActivity: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(spacing: 8) {
+                        // Current Target Station Focus Bar
+                        HStack(spacing: 6) {
+                            Text(context.state.activeStationRole)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background((context.state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
+
+                            Text(context.state.activeStationName)
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+
+                            Spacer()
+
+                            Text(context.state.isOnBoard ? "\(context.state.remainingStops)정거장 남음" : "\(context.state.boardingRemainingStops)정거장 전")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(activeCountColor(for: context.state))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+
                         // Dynamic Journey Progress Bar
                         journeyProgressBar(state: context.state)
                             .padding(.horizontal, 4)
@@ -240,6 +265,49 @@ struct BusRideLiveActivity: Widget {
                         .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                 }
             }
+
+            // Prominent Currently Tracked Station Focus Box
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+                            .frame(width: 6, height: 6)
+                        Text(state.activeStationRole)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
+                    }
+
+                    Text(state.activeStationName)
+                        .font(.system(size: 16, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(state.isOnBoard ? "도착 목표" : "탑승 대기")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.5))
+                    HStack(spacing: 2) {
+                        Text("\(state.activeRemainingStops)")
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
+                            .foregroundStyle(activeCountColor(for: state))
+                        Text(state.isOnBoard ? "정거장" : "정거장 전")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke((state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.35), lineWidth: 1)
+            )
 
             // Realtime Progress Bar in Lock Screen
             journeyProgressBar(state: state)
