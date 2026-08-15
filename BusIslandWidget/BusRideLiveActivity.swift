@@ -106,12 +106,6 @@ struct BusRideLiveActivity: Widget {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background((context.state.isOnBoard ? GlassTheme.accent : GlassTheme.boarding).opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
-
-                            Spacer(minLength: 0)
-
-                            Text(context.state.isOnBoard ? "\(context.state.remainingStops)정거장" : "\(context.state.boardingRemainingStops)전")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
-                                .foregroundStyle(activeCountColor(for: context.state))
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

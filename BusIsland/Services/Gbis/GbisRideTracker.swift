@@ -79,23 +79,52 @@ final class GbisRideTracker {
             alightingStops = 0
         }
 
-        // Determine currently tracked bus location station name
-        var currentStationName: String?
-        if !selection.allStations.isEmpty {
-            if !isOnBoardConfirmed && boardingStops > 0 {
-                let estimatedSeq = max(1, selection.boardingSeq - boardingStops)
-                if let matched = selection.allStations.first(where: { $0.stationSeq == estimatedSeq }) {
-                    currentStationName = matched.stationName
+        // Determine currently tracked bus location station name precisely
+        var currentStationName: String = ""
+        let sortedStations = selection.allStations.sorted { $0.stationSeq < $1.stationSeq }
+
+        if !isOnBoardConfirmed {
+            // 승차 대기 중: 승차 정류장 기준 이전 정류장 추적
+            if boardingStops <= 0 {
+                currentStationName = "\(selection.boardingStation.stationName) 진입 중"
+            } else if !sortedStations.isEmpty {
+                let boardingIndex = sortedStations.firstIndex(where: {
+                    $0.stationId == selection.boardingStation.stationId || $0.stationSeq == selection.boardingSeq
+                })
+                if let bIdx = boardingIndex, bIdx - boardingStops >= 0 {
+                    currentStationName = sortedStations[bIdx - boardingStops].stationName
+                } else {
+                    let targetSeq = max(1, selection.boardingSeq - boardingStops)
+                    if let matched = sortedStations.first(where: { $0.stationSeq == targetSeq }) {
+                        currentStationName = matched.stationName
+                    } else {
+                        currentStationName = "\(boardingStops)정거장 전 운행 중"
+                    }
                 }
             } else {
-                let estimatedSeq = max(selection.boardingSeq, selection.destination.stationSeq - alightingStops)
-                if let matched = selection.allStations.first(where: { $0.stationSeq == estimatedSeq }) {
-                    currentStationName = matched.stationName
-                }
+                currentStationName = "\(boardingStops)정거장 전 운행 중"
             }
-        }
-        if currentStationName == nil || currentStationName?.isEmpty == true {
-            currentStationName = isOnBoardConfirmed ? selection.destination.stationName : selection.boardingStation.stationName
+        } else {
+            // 탑승 후 이동 중: 하차 정류장 기준 이전 통과 정류장 추적
+            if hasArrived || alightingStops <= 0 {
+                currentStationName = "\(selection.destination.stationName) 도착"
+            } else if !sortedStations.isEmpty {
+                let destIndex = sortedStations.firstIndex(where: {
+                    $0.stationId == selection.destination.stationId || $0.stationSeq == selection.destination.stationSeq
+                })
+                if let dIdx = destIndex, dIdx - alightingStops >= 0 {
+                    currentStationName = sortedStations[dIdx - alightingStops].stationName
+                } else {
+                    let targetSeq = max(selection.boardingSeq, selection.destination.stationSeq - alightingStops)
+                    if let matched = sortedStations.first(where: { $0.stationSeq == targetSeq }) {
+                        currentStationName = matched.stationName
+                    } else {
+                        currentStationName = "\(alightingStops)정거장 남음"
+                    }
+                }
+            } else {
+                currentStationName = "\(alightingStops)정거장 남음"
+            }
         }
 
         let snapshot = BusRideSnapshot(
@@ -110,7 +139,7 @@ final class GbisRideTracker {
         )
         latestSnapshot = snapshot
         AppLog.log(
-            "ride refresh boarded=\(isOnBoardConfirmed) arrived=\(hasArrived) board=\(boardingRealtime.map(String.init) ?? "-") dest=\(alightingRealtime.map(String.init) ?? "-") event=\(String(describing: pendingEvent))"
+            "ride refresh boarded=\(isOnBoardConfirmed) arrived=\(hasArrived) board=\(boardingRealtime.map(String.init) ?? "-") dest=\(alightingRealtime.map(String.init) ?? "-") current=\(currentStationName)"
         )
         return snapshot
     }
