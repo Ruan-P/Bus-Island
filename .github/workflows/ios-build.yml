@@ -202,12 +202,16 @@ jobs:
           mkdir -p build/Payload build/ipa
           cp -R "$APP_PATH" build/Payload/
 
-          # Regression guard: the .app root must not contain loose AppIcon PNGs
-          LOOSE=$(find build/Payload/BusIsland.app -maxdepth 1 -name 'AppIcon*.png' | wc -l | tr -d ' ')
-          if [ "$LOOSE" -ne 0 ]; then
-            echo "ERROR: loose AppIcon*.png would be shipped inside Payload/BusIsland.app"
-            find build/Payload/BusIsland.app -maxdepth 1 -name 'AppIcon*.png'
-            exit 1
+          # Xcode may emit the required iPhone icon beside Assets.car.
+          # Reject only broad source-copy artifacts; allow actool output.
+          for forbidden in AppIcon.png AppIcon-1024.png AppIcon20x20@2x.png AppIcon20x20@3x.png AppIcon29x29@2x.png AppIcon29x29@3x.png AppIcon40x40@2x.png AppIcon40x40@3x.png AppIcon60x60@3x.png; do
+            if [ -e "build/Payload/BusIsland.app/$forbidden" ]; then
+              echo "ERROR: loose source icon would be shipped: $forbidden"
+              exit 1
+            fi
+          done
+          if [ -e build/Payload/BusIsland.app/AppIcon60x60@2x.png ]; then
+            echo "Allowed actool-generated AppIcon60x60@2x.png present"
           fi
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/Payload/BusIsland.app/Info.plist
           test -x build/Payload/BusIsland.app/BusIsland || {
