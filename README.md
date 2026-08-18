@@ -81,6 +81,26 @@ GitHub Actions는 **서명 없는** IPA를 만듭니다. sideloader가 설치 �
 
 App Store 배포·인증서·프로파일은 현재 범위 밖입니다.
 
+## 앱 아이콘 구성과 재설치 검증
+
+unsigned IPA의 아이콘은 CI archive에서 **Asset Catalog 컴파일 결과**로 결정됩니다.
+
+- 아이콘의 단일 소스는 `BusIsland/Assets.xcassets/AppIcon.appiconset`이고, `CFBundleIconName = AppIcon`은 (수동 plist가 아니라) `ASSETCATALOG_COMPILER_APPICON_NAME` 빌드 설정이 생성한 값을 사용합니다.
+- `.app` 루트에 PNG를 복사해 아이콘을 우회 패키징하는 방식은 **사용하지 않습니다**.
+- CI가 `Assets.car` 존재, 최종 `Info.plist`의 아이콘 키, `.app` 루트의 아이콘 PNG 부재를 검증합니다.
+- Widget Extension의 AppIcon 세트(`BusIslandWidget/Assets.xcassets/AppIcon.appiconset`)는 홈 화면 앱 아이콘을 결정하지 않으며, 메인 타깃의 세트와 같은 원본으로 정리해 둡니다.
+
+아이콘 변경이 홈 화면에 반영되지 않을 때에는 SpringBoard/Sideloader 캐시 문제일 수 있으므로 아래 절차로 확인합니다.
+
+1. 기존 BusIsland 앱을 iPhone에서 **완전히 삭제**합니다.
+2. 홈 화면과 Spotlight에서 기존 아이콘 캐시가 사라졌는지 확인합니다.
+3. 새 CI artifact(`BusIsland-unsigned.ipa`)를 다운로드합니다.
+4. sideloader로 재서명·설치합니다.
+5. 그래도 아이콘이 이전 이미지라면 **bundle identifier를 임시 변경한 테스트 빌드**로 원인을 분리합니다.
+   - 새 아이콘이 나오면 → 설치 캐시/앱 교체 문제입니다.
+   - 새 아이콘도 안 나오면 → archive/Asset Catalog 문제입니다.
+6. 원인 확인 후 bundle identifier를 원래 값(`com.busisland.BusIsland`)으로 복원하고 기존 앱 삭제 → 재설치로 마무리합니다.
+
 ## 한계 (서버리스)
 
 - 앱이 완전히 종료되면 Live Activity 숫자 자동 갱신이 멈출 수 있음  

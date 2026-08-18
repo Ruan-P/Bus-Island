@@ -121,6 +121,73 @@ jobs:
           }
           echo "Binary OK"
 
+      - name: Verify app icon packaging (Asset Catalog)
+        run: |
+          set -euo pipefail
+          APP="build/BusIsland.xcarchive/Products/Applications/BusIsland.app"
+
+          # 1. Asset Catalog compiled binary must exist
+          test -f "$APP/Assets.car" || {
+            echo "ERROR: $APP/Assets.car missing"
+            exit 1
+          }
+          echo "Assets.car exists"
+
+          # 2. Final Info.plist must carry the Asset Catalog source of truth
+          ICON_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$APP/Info.plist")
+          test "$ICON_NAME" = "AppIcon" || {
+            echo "ERROR: CFBundleIconName=$ICON_NAME (expected AppIcon)"
+            exit 1
+          }
+          echo "CFBundleIconName=$ICON_NAME"
+
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon' "$APP/Info.plist" >/dev/null 2>&1 || {
+            echo "ERROR: CFBundleIcons/CFBundlePrimaryIcon missing in final Info.plist"
+            exit 1
+          }
+          PRIMARY_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName' "$APP/Info.plist")
+          test "$PRIMARY_NAME" = "AppIcon" || {
+            echo "ERROR: CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName=$PRIMARY_NAME (expected AppIcon)"
+            exit 1
+          }
+          echo "CFBundleIcons/CFBundlePrimaryIcon OK"
+
+          # 3. No loose source PNG copies in the .app root
+          LOOSE=$(find "$APP" -maxdepth 1 -name 'AppIcon*.png' | wc -l | tr -d ' ')
+          if [ "$LOOSE" -ne 0 ]; then
+            echo "ERROR: found $LOOSE loose AppIcon*.png in .app root"
+            find "$APP" -maxdepth 1 -name 'AppIcon*.png'
+            exit 1
+          fi
+          echo "No loose AppIcon*.png in .app root"
+
+          # 4. Bundle identity
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")
+          test "$BUNDLE_ID" = "com.busisland.BusIsland" || {
+            echo "ERROR: CFBundleIdentifier=$BUNDLE_ID (expected com.busisland.BusIsland)"
+            exit 1
+          }
+          echo "CFBundleIdentifier=$BUNDLE_ID"
+          test -x "$APP/BusIsland" || {
+            echo "ERROR: $APP/BusIsland executable missing"
+            exit 1
+          }
+          echo "Executable OK"
+
+          # 5. Inspect Assets.car AppIcon slots when assetutil is available
+          if command -v assetutil >/dev/null 2>&1; then
+            SLOT_COUNT=$(assetutil --info "$APP/Assets.car" | grep -ci 'AppIcon' || true)
+            test "$SLOT_COUNT" -ge 1 || {
+              echo "ERROR: no AppIcon slots found in Assets.car"
+              exit 1
+            }
+            echo "Assets.car has $SLOT_COUNT AppIcon slot entries"
+            assetutil --info "$APP/Assets.car" | grep -iE 'AppIcon|PixelWidth|PixelHeight' | head -40
+          else
+            echo "assetutil not available; skipping Assets.car slot inspection"
+          fi
+          echo "App icon packaging OK"
+
       - name: Package unsigned IPA
         run: |
           set -euo pipefail
@@ -128,8 +195,20 @@ jobs:
           rm -rf build/Payload build/ipa
           mkdir -p build/Payload build/ipa
           cp -R "$APP_PATH" build/Payload/
-          # Ensure loose AppIcon PNGs exist in root of .app for SpringBoard/usernoted in sideloaded environments
-          cp -f BusIsland/Assets.xcassets/AppIcon.appiconset/*.png build/Payload/BusIsland.app/ || true
+
+          # Regression guard: the .app root must not contain loose AppIcon PNGs
+          LOOSE=$(find build/Payload/BusIsland.app -maxdepth 1 -name 'AppIcon*.png' | wc -l | tr -d ' ')
+          if [ "$LOOSE" -ne 0 ]; then
+            echo "ERROR: loose AppIcon*.png would be shipped inside Payload/BusIsland.app"
+            find build/Payload/BusIsland.app -maxdepth 1 -name 'AppIcon*.png'
+            exit 1
+          fi
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/Payload/BusIsland.app/Info.plist
+          test -x build/Payload/BusIsland.app/BusIsland || {
+            echo "ERROR: Payload/BusIsland.app/BusIsland executable missing"
+            exit 1
+          }
+          echo "Payload/BusIsland.app structure OK"
           (
             cd build
             zip -qr "ipa/BusIsland-unsigned.ipa" Payload
