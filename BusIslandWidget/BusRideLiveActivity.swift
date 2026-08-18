@@ -20,11 +20,8 @@ struct BusRideLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 7) {
                         Image(systemName: "bus.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(6)
-                            .background(RideTheme.primary, in: Circle())
-                            .shadow(color: RideTheme.primary.opacity(0.5), radius: 3)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(RideTheme.primary)
 
                         VStack(alignment: .leading, spacing: 1) {
                             Text(context.state.routeNumber)
@@ -131,7 +128,6 @@ struct BusRideLiveActivity: Widget {
             Circle()
                 .fill(RideTheme.boarding)
                 .frame(width: 6, height: 6)
-                .shadow(color: RideTheme.boarding.opacity(0.8), radius: 3)
 
             GeometryReader { geo in
                 let totalWidth = geo.size.width
@@ -144,7 +140,7 @@ struct BusRideLiveActivity: Widget {
                         .fill(Color.white.opacity(0.20))
                         .frame(height: 4)
 
-                    // Active glowing filled bar
+                    // Active filled bar
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -156,13 +152,11 @@ struct BusRideLiveActivity: Widget {
                             )
                         )
                         .frame(width: activeWidth, height: 4)
-                        .shadow(color: (state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.5), radius: 3)
 
                     // Moving Bus Indicator Head
                     Circle()
                         .fill(Color.white)
                         .frame(width: 9, height: 9)
-                        .shadow(color: Color.black.opacity(0.6), radius: 2, x: 0, y: 1)
                         .offset(x: max(0, activeWidth - 4.5))
                 }
                 .frame(maxHeight: .infinity, alignment: .center)
@@ -172,7 +166,6 @@ struct BusRideLiveActivity: Widget {
             Circle()
                 .fill(RideTheme.destination)
                 .frame(width: 6, height: 6)
-                .shadow(color: RideTheme.destination.opacity(0.8), radius: 3)
         }
     }
 
@@ -188,15 +181,9 @@ struct BusRideLiveActivity: Widget {
     ) -> some View {
         HStack(spacing: 8) {
             Text(role)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 10, weight: .heavy))
                 .foregroundStyle(color)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(color.opacity(0.22), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .stroke(color.opacity(0.45), lineWidth: 0.75)
-                )
+                .frame(width: 28, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 1.5) {
                 Text(name.isEmpty ? "-" : name)
@@ -240,9 +227,9 @@ struct BusRideLiveActivity: Widget {
                     HStack(spacing: 8) {
                         Image(systemName: "bus.fill")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                             .padding(7)
-                            .background(RideTheme.primary, in: Circle())
+                            .rideLiquidGlass(in: Circle(), tint: RideTheme.primary.opacity(0.35))
 
                         VStack(alignment: .leading, spacing: 1) {
                             Text(state.routeNumber)
@@ -306,9 +293,6 @@ struct BusRideLiveActivity: Widget {
                 }
             }
             .padding(16)
-            .glassEffect(.regular.tint(
-                state.isOnBoard ? RideTheme.accent.opacity(0.15) : RideTheme.boarding.opacity(0.15)
-            ), in: .rect(cornerRadius: 22, style: .continuous))
         }
         .activityBackgroundTint(.clear)
         .activitySystemActionForegroundColor(.white)
@@ -330,7 +314,7 @@ struct BusRideLiveActivity: Widget {
                 .foregroundStyle(color)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .glassEffect(.clear.tint(color.opacity(0.3)), in: .rect(cornerRadius: 5, style: .continuous))
+                .rideLiquidGlass(in: .rect(cornerRadius: 6, style: .continuous), tint: color.opacity(0.3))
 
             VStack(alignment: .leading, spacing: 1.5) {
                 Text(name.isEmpty ? "-" : name)

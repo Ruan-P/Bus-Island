@@ -69,10 +69,10 @@ data.go.kr에서 아래 **경기도** API를 활용신청하고, 발급 **Decodi
 
 ## 빌드 설정
 
-- 최소 배포 타깃: iOS 17.0  
-- Swift 6.0  
-- Xcode 16.4 (CI), runner: `macos-15`  
-- `CODE_SIGNING_ALLOWED=NO` unsigned 빌드  
+- 최소 배포 타깃: iOS 26.0 (iOS 26 전용 Liquid Glass API `glassEffect` / `GlassEffectContainer` 사용)
+- Swift 6.0
+- Xcode 26.3 (CI), runner: `macos-15`
+- `CODE_SIGNING_ALLOWED=NO` unsigned 빌드
 - `NSSupportsLiveActivities` = true  
 
 ## Apple 서명과 IPA 설치
