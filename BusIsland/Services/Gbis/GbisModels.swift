@@ -51,6 +51,27 @@ struct GbisStation: Identifiable, Hashable, Sendable, Codable {
     }
 }
 
+/// 다음 차량(2차) 도착 정보. 1차 정보가 없을 때는 `nil`이 되므로 UI와 Codable 해석에 안전하다.
+struct GbisNextBus: Codable, Hashable, Sendable {
+    let remainingStops: Int?
+    let predictTimeMinutes: Int?
+    let plateNo: String?
+
+    var hasData: Bool {
+        remainingStops != nil || predictTimeMinutes != nil
+    }
+
+    init(
+        remainingStops: Int? = nil,
+        predictTimeMinutes: Int? = nil,
+        plateNo: String? = nil
+    ) {
+        self.remainingStops = remainingStops
+        self.predictTimeMinutes = predictTimeMinutes
+        self.plateNo = plateNo
+    }
+}
+
 struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
     var id: String { routeId }
     let routeId: String
@@ -59,6 +80,7 @@ struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
     let regionName: String?
     let remainingStops: Int?
     let predictTimeMinutes: Int?
+    let nextBus: GbisNextBus?
 
     init(
         routeId: String,
@@ -66,7 +88,8 @@ struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
         routeTypeName: String? = nil,
         regionName: String? = nil,
         remainingStops: Int? = nil,
-        predictTimeMinutes: Int? = nil
+        predictTimeMinutes: Int? = nil,
+        nextBus: GbisNextBus? = nil
     ) {
         self.routeId = routeId
         self.routeName = routeName
@@ -74,7 +97,11 @@ struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
         self.regionName = regionName
         self.remainingStops = remainingStops
         self.predictTimeMinutes = predictTimeMinutes
+        self.nextBus = nextBus
     }
+
+    var nextBusRemainingStops: Int? { nextBus?.remainingStops }
+    var nextBusPredictTimeMinutes: Int? { nextBus?.predictTimeMinutes }
 
     var subtitle: String {
         [routeTypeName, regionName]
@@ -97,6 +124,27 @@ struct GbisRoute: Identifiable, Hashable, Sendable, Codable {
     var arrivalTimeText: String? {
         guard let predictTimeMinutes, predictTimeMinutes > 0 else { return nil }
         return "약 \(predictTimeMinutes)분"
+    }
+
+    /// 2차 차량 도착 정보 존재 여부. 없으면 UI는 1차 정보만 표시한다.
+    var hasNextBusData: Bool {
+        nextBus?.hasData ?? false
+    }
+
+    var nextBusBadgeText: String? {
+        guard let stops = nextBus?.remainingStops else { return nil }
+        if stops <= 0 {
+            return "곧 도착"
+        } else if stops == 1 {
+            return "1정거장 전"
+        } else {
+            return "\(stops)정거장 전"
+        }
+    }
+
+    var nextBusTimeText: String? {
+        guard let minutes = nextBus?.predictTimeMinutes, minutes > 0 else { return nil }
+        return "약 \(minutes)분"
     }
 }
 
@@ -317,6 +365,9 @@ struct GbisArrivalDTO: Decodable {
     let locationNo1: LosslessStringCodable?
     let predictTime1: LosslessStringCodable?
     let plateNo1: LosslessStringCodable?
+    let locationNo2: LosslessStringCodable?
+    let predictTime2: LosslessStringCodable?
+    let plateNo2: LosslessStringCodable?
     let routeId: LosslessStringCodable?
     let routeName: LosslessStringCodable?
     let routeDestName: LosslessStringCodable?
@@ -327,5 +378,51 @@ struct GbisArrivalDTO: Decodable {
 
     var remainingStops: Int? {
         locationNo1?.intValue
+    }
+
+    var nextRemainingStops: Int? {
+        locationNo2?.intValue
+    }
+
+    var predictTimeMinutes: Int? {
+        predictTime1?.intValue
+    }
+
+    var nextPredictTimeMinutes: Int? {
+        predictTime2?.intValue
+    }
+
+    var nextPlateNo: String? {
+        guard let value = plateNo2?.value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// 1차/2차 도착 차량 정보를 하나의 노선 모델로 매핑한다 (중복 행 생성 없음).
+    func toArrivalRoute() -> GbisRoute? {
+        guard let routeId = routeId?.value, !routeId.isEmpty else { return nil }
+        let name = routeName?.value
+        let dest = routeDestName?.value
+        let displayName: String
+        if let name, !name.isEmpty {
+            displayName = name
+        } else if let dest, !dest.isEmpty {
+            displayName = dest
+        } else {
+            displayName = "노선 \(routeId)"
+        }
+        return GbisRoute(
+            routeId: routeId,
+            routeName: displayName,
+            routeTypeName: nil,
+            regionName: dest,
+            remainingStops: remainingStops,
+            predictTimeMinutes: predictTimeMinutes,
+            nextBus: GbisNextBus(
+                remainingStops: nextRemainingStops,
+                predictTimeMinutes: nextPredictTimeMinutes,
+                plateNo: nextPlateNo
+            )
+        )
     }
 }

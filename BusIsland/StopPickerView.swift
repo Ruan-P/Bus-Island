@@ -210,94 +210,19 @@ struct RoutePickerView: View {
                     Section {
                         ForEach(filtered) { route in
                             let isSelected = (selectedID == route.routeId)
-                            Button {
-                                onSelect(route)
-                                dismiss()
-                            } label: {
-                                HStack(spacing: 12) {
-                                    // Retro Pixel Bus Badge
-                                    VStack(spacing: 2) {
-                                        Text("BUS")
-                                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                                            .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color(red: 0.25, green: 0.55, blue: 1.0))
-                                        Image(systemName: "bus.fill")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(isSelected ? Color.white : Color(red: 0.25, green: 0.55, blue: 1.0))
-                                    }
-                                    .frame(width: 36, height: 36)
-                                    .background(
-                                        isSelected ? Color(red: 0.25, green: 0.55, blue: 1.0) : Color(red: 0.25, green: 0.55, blue: 1.0).opacity(0.12),
-                                        in: RoundedRectangle(cornerRadius: 8)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke((isSelected ? Color.white : Color(red: 0.25, green: 0.55, blue: 1.0)).opacity(0.35), lineWidth: 1)
-                                    )
-
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                            Text(route.routeName)
-                                                .font(.system(size: 17, weight: .black, design: .monospaced))
-                                                .foregroundStyle(.primary)
-                                            if let typeName = route.routeTypeName, !typeName.isEmpty {
-                                                Text(typeName)
-                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                                    .foregroundStyle(.secondary)
-                                                    .padding(.horizontal, 4)
-                                                    .padding(.vertical, 1)
-                                                    .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 4))
-                                            }
-                                        }
-                                        if let region = route.regionName, !region.isEmpty {
-                                            Text("› \(region)")
-                                                .font(.system(size: 11, design: .monospaced))
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
-                                    }
-
-                                    Spacer(minLength: 8)
-
-                                    // Real-time Arrival Badge (High-Contrast Retro Arcade Pill)
-                                    if let badgeText = route.arrivalBadgeText {
-                                        let stops = route.remainingStops ?? 99
-                                        let isImminent = stops <= 0
-                                        let isSoon = stops == 1
-                                        let bgFill = isImminent
-                                            ? Color(red: 1.0, green: 0.22, blue: 0.35)
-                                            : (isSoon ? Color(red: 1.0, green: 0.55, blue: 0.0) : Color(red: 0.0, green: 0.70, blue: 0.65))
-                                        VStack(alignment: .trailing, spacing: 3) {
-                                            Text(badgeText)
-                                                .font(.system(size: 11, weight: .black, design: .monospaced))
-                                                .foregroundStyle(Color.white)
-                                                .padding(.horizontal, 7)
-                                                .padding(.vertical, 3)
-                                                .background(bgFill, in: RoundedRectangle(cornerRadius: 6))
-                                                .shadow(color: bgFill.opacity(0.35), radius: 2, x: 0, y: 1)
-
-                                            if let timeText = route.arrivalTimeText {
-                                                Text(timeText)
-                                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                        }
-                                    } else {
-                                        Text("[대기]")
-                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                            .foregroundStyle(.tertiary)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 4))
-                                    }
-
-                                    if isSelected {
-                                        Text("✔")
-                                            .font(.system(size: 12, weight: .black, design: .monospaced))
-                                            .foregroundStyle(Color(red: 0.25, green: 0.55, blue: 1.0))
+                            // 하나의 노선을 1차/2차 차량별 별도 행으로 분리 렌더링한다.
+                            let rows = RouteArrivalRow.rows(for: route)
+                            VStack(spacing: 6) {
+                                ForEach(rows) { row in
+                                    Button {
+                                        onSelect(route)
+                                        dismiss()
+                                    } label: {
+                                        RouteArrivalRow(row: row, route: route, isSelected: isSelected)
                                     }
                                 }
-                                .padding(.vertical, 4)
                             }
+                            .padding(.vertical, 4)
                         }
                     } header: {
                         HStack {
@@ -316,6 +241,136 @@ struct RoutePickerView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("노선 선택")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// 노선의 1차/2차 차량 각각을 별도 선택 행으로 렌더링한다.
+/// 순번·노선/목적지·남은 정거장·예상 시간을 한 행에 두고, 좁은 화면에서도 잘리지 않게 축소한다.
+private struct RouteArrivalRow: View {
+    struct Item: Identifiable {
+        let seq: Int
+        let badgeText: String?
+        let timeText: String?
+        let fill: Color
+        var id: Int { seq }
+    }
+
+    let row: Item
+    let route: GbisRoute
+    let isSelected: Bool
+
+    static func rows(for route: GbisRoute) -> [Item] {
+        var items: [Item] = [
+            Item(
+                seq: 1,
+                badgeText: route.arrivalBadgeText ?? "[대기]",
+                timeText: route.arrivalTimeText,
+                fill: Self.firstFill(for: route.remainingStops ?? 99)
+            )
+        ]
+        if route.hasNextBusData {
+            items.append(
+                Item(
+                    seq: 2,
+                    badgeText: route.nextBusBadgeText,
+                    timeText: route.nextBusTimeText,
+                    fill: Self.nextFill
+                )
+            )
+        }
+        return items
+    }
+
+    private static func firstFill(for stops: Int) -> Color {
+        if stops <= 0 {
+            return Color(red: 1.0, green: 0.22, blue: 0.35)
+        } else if stops == 1 {
+            return Color(red: 1.0, green: 0.55, blue: 0.0)
+        } else {
+            return Color(red: 0.0, green: 0.70, blue: 0.65)
+        }
+    }
+
+    private static let nextFill = Color(red: 0.25, green: 0.55, blue: 1.0)
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // 순번 뱃지 (도착1/도착2)
+            VStack(spacing: 2) {
+                Text("BUS")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color(red: 0.25, green: 0.55, blue: 1.0))
+                Text("도착\(row.seq)")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(isSelected ? Color.white : Color(red: 0.25, green: 0.55, blue: 1.0))
+            }
+            .frame(width: 46, height: 36)
+            .background(
+                isSelected ? Color(red: 0.25, green: 0.55, blue: 1.0) : Color(red: 0.25, green: 0.55, blue: 1.0).opacity(0.12),
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke((isSelected ? Color.white : Color(red: 0.25, green: 0.55, blue: 1.0)).opacity(0.35), lineWidth: 1)
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(route.routeName)
+                        .font(.system(size: 17, weight: .black, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    if let typeName = route.routeTypeName, !typeName.isEmpty {
+                        Text(typeName)
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 4))
+                    }
+                }
+                if let region = route.regionName, !region.isEmpty {
+                    Text("› \(region)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+
+            Spacer(minLength: 6)
+
+            // 해당 차량의 남은 정거장 + 예상 시간
+            VStack(alignment: .trailing, spacing: 3) {
+                if let badgeText = row.badgeText {
+                    Text(badgeText)
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(row.fill, in: RoundedRectangle(cornerRadius: 6))
+                        .shadow(color: row.fill.opacity(0.35), radius: 2, x: 0, y: 1)
+                }
+                if let timeText = row.timeText {
+                    Text(timeText)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
+
+            if isSelected {
+                Text("✔")
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.25, green: 0.55, blue: 1.0))
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
