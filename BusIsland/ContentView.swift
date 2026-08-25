@@ -967,7 +967,10 @@ final class BusRideViewModel {
     }
 
     var keyStatusText: String {
-        keyStore.isUsingBakedDefault ? "API 키: 기본키" : "API 키: 사용자 저장키"
+        if !keyStore.hasServiceKey {
+            return "API 키: 미등록 (설정 필요)"
+        }
+        return keyStore.isUsingBakedDefault ? "API 키: 기본키" : "API 키: 사용자 저장키"
     }
 
     var statusText: String {
