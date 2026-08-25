@@ -7,9 +7,8 @@ import Security
 public final class APIKeyStore: Sendable {
     public static let shared = APIKeyStore()
 
-    /// Personal default (Decoding key). Override via Settings / Keychain.
-    public static let bakedDefaultKey =
-        "odnBXzgjK5VGCmLbg/VIzxvo6CcBW3gmZmfW/9rmY80IsVTQNtjHuK6AI8jNVZdDrNCIaSiAbOLas5kbPR7pfg=="
+    /// Default key placeholder. Configure via Settings / Keychain.
+    public static let bakedDefaultKey = ""
 
     private let service = "com.busisland.BusIsland"
     private let account = "data.go.kr.serviceKey"
@@ -22,7 +21,8 @@ public final class APIKeyStore: Sendable {
             if let stored = read(), !stored.isEmpty {
                 return Self.normalizedDecodingKey(stored)
             }
-            return Self.normalizedDecodingKey(Self.bakedDefaultKey)
+            let def = Self.normalizedDecodingKey(Self.bakedDefaultKey)
+            return def.isEmpty ? nil : def
         }
         set {
             if let newValue {
@@ -44,7 +44,7 @@ public final class APIKeyStore: Sendable {
     }
 
     public var isUsingBakedDefault: Bool {
-        read() == nil
+        read() == nil && !Self.bakedDefaultKey.isEmpty
     }
 
     /// Convert Encoding key (`%2F`…) to Decoding key if needed.

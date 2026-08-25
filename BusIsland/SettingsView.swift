@@ -19,12 +19,12 @@ struct SettingsView: View {
                             .font(.system(size: 12, weight: .black, design: .monospaced))
                     }
                     Spacer()
-                    Text(usingBaked ? "[BUILT-IN KEY]" : "[CUSTOM USER KEY]")
+                    Text(usingBaked ? "[BUILT-IN KEY]" : (APIKeyStore.shared.hasServiceKey ? "[CUSTOM USER KEY]" : "[NO KEY]"))
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(usingBaked ? Color.secondary : Color(red: 0.25, green: 0.55, blue: 1.0))
+                        .foregroundStyle(usingBaked ? Color.secondary : (APIKeyStore.shared.hasServiceKey ? Color(red: 0.25, green: 0.55, blue: 1.0) : Color.red))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background((usingBaked ? Color.secondary : Color(red: 0.25, green: 0.55, blue: 1.0)).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                        .background((usingBaked ? Color.secondary : (APIKeyStore.shared.hasServiceKey ? Color(red: 0.25, green: 0.55, blue: 1.0) : Color.red)).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                 }
 
                 SecureField("serviceKey 입력 (공공데이터포털)", text: $serviceKey)
@@ -52,13 +52,13 @@ struct SettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .disabled(serviceKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                if !usingBaked {
+                if !usingBaked && APIKeyStore.shared.hasServiceKey {
                     Button(role: .destructive) {
                         APIKeyStore.shared.serviceKey = nil
                         serviceKey = ""
                         refreshState()
                     } label: {
-                        Text("RESET TO DEFAULT KEY")
+                        Text("REMOVE STORED KEY")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                             .frame(maxWidth: .infinity)
                     }
@@ -67,7 +67,7 @@ struct SettingsView: View {
                 Text("◆ GBIS / TAGO API CONFIG")
                     .font(.system(size: 11, weight: .black, design: .monospaced))
             } footer: {
-                Text("공공데이터포털 인증키(Decoding / Encoding) 모두 지원합니다. 키가 없더라도 빌드 기본 키로 동작합니다.")
+                Text("공공데이터포털(data.go.kr)에서 발급받은 버스 오픈API 인증키(Decoding / Encoding)를 입력해 주세요.")
                     .font(.system(size: 10, design: .monospaced))
             }
 
