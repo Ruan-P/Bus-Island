@@ -145,17 +145,35 @@ struct StopPickerView: View {
 }
 
 struct RoutePickerView: View {
-    let routes: [GbisRoute]
+    let initialRoutes: [GbisRoute]
     let selectedID: String?
+    var onRefresh: (() async -> [GbisRoute])? = nil
     let onSelect: (GbisRoute) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var currentRoutes: [GbisRoute] = []
     @State private var query = ""
+    @State private var isRefreshing = false
+    @State private var lastUpdatedDate = Date()
+
+    init(
+        routes: [GbisRoute],
+        selectedID: String?,
+        onRefresh: (() async -> [GbisRoute])? = nil,
+        onSelect: @escaping (GbisRoute) -> Void
+    ) {
+        self.initialRoutes = routes
+        self.selectedID = selectedID
+        self.onRefresh = onRefresh
+        self.onSelect = onSelect
+        _currentRoutes = State(initialValue: routes)
+    }
 
     private var filtered: [GbisRoute] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return routes }
-        return routes.filter {
+        let list = currentRoutes.isEmpty ? initialRoutes : currentRoutes
+        guard !trimmed.isEmpty else { return list }
+        return list.filter {
             $0.routeName.localizedCaseInsensitiveContains(trimmed)
                 || $0.subtitle.localizedCaseInsensitiveContains(trimmed)
         }
@@ -199,9 +217,22 @@ struct RoutePickerView: View {
                     Text("NO ROUTES FOUND")
                         .font(.system(size: 14, weight: .black, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    Text("검색된 노선이 없습니다.")
+                    Text("도착 예정 노선이 없거나 검색 결과가 없습니다.")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
+                    if onRefresh != nil {
+                        Button {
+                            Task { await performRefresh(silent: false) }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.clockwise")
+                                Text("새로고침")
+                            }
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        }
+                        .buttonStyle(.bordered)
+                        .padding(.top, 8)
+                    }
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
@@ -226,21 +257,68 @@ struct RoutePickerView: View {
                         }
                     } header: {
                         HStack {
-                            Text("◆ ARRIVING BUSES")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                            HStack(spacing: 4) {
+                                Text("◆ ARRIVING BUSES")
+                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                if isRefreshing {
+                                    ProgressView()
+                                        .scaleEffect(0.6)
+                                }
+                            }
                             Spacer()
-                            Text("TOTAL: \(filtered.count)")
+                            Text("TOTAL: \(filtered.count) · 15s AUTO")
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
                 .listStyle(.insetGrouped)
+                .refreshable {
+                    await performRefresh(silent: false)
+                }
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("노선 선택")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await performRefresh(silent: false) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .bold))
+                        .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                        .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+                }
+                .disabled(isRefreshing)
+            }
+        }
+        .task {
+            // 화면 진입 시 최신 상태 유지 및 15초 주기 자동 갱신
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(15))
+                if !Task.isCancelled {
+                    await performRefresh(silent: true)
+                }
+            }
+        }
+    }
+
+    private func performRefresh(silent: Bool) async {
+        guard let onRefresh, !isRefreshing else { return }
+        if !silent {
+            isRefreshing = true
+        }
+        let latest = await onRefresh()
+        if !latest.isEmpty {
+            currentRoutes = latest
+            lastUpdatedDate = Date()
+        }
+        if !silent {
+            try? await Task.sleep(for: .milliseconds(300))
+            isRefreshing = false
+        }
     }
 }
 

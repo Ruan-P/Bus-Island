@@ -680,6 +680,21 @@ struct ContentView: View {
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(RetroPixelTheme.blue.opacity(0.3), lineWidth: 1)
                     )
+                } else if viewModel.selectedStation != nil {
+                    Button {
+                        Task { _ = await viewModel.refreshArrivingRoutes() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("새로고침")
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(RetroPixelTheme.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(RetroPixelTheme.blue)
+                    }
                 }
             }
 
@@ -688,7 +703,10 @@ struct ContentView: View {
                 NavigationLink {
                     RoutePickerView(
                         routes: viewModel.routeResults,
-                        selectedID: viewModel.selectedRoute?.routeId
+                        selectedID: viewModel.selectedRoute?.routeId,
+                        onRefresh: {
+                            await viewModel.refreshArrivingRoutes()
+                        }
                     ) { route in
                         Task { await viewModel.selectRoute(route) }
                     }
@@ -1068,6 +1086,21 @@ final class BusRideViewModel {
             if routes.count == 1 {
                 try await selectRouteInternal(routes[0])
             }
+        }
+    }
+
+    func refreshArrivingRoutes(for customStationId: String? = nil) async -> [GbisRoute] {
+        guard let stId = customStationId ?? selectedStation?.stationId else { return [] }
+        do {
+            let routes = try await client.routes(at: stId)
+            stationRoutesCache[stId] = (Date(), routes)
+            routeResults = routes
+            prefetchRouteStops(for: Array(routes.prefix(3)))
+            AppLog.log("refreshArrivingRoutes: refreshed \(routes.count) routes for \(stId)")
+            return routes
+        } catch {
+            AppLog.log("refreshArrivingRoutes failed: \(error.localizedDescription)")
+            return routeResults
         }
     }
 
