@@ -61,9 +61,9 @@ struct BusRideLiveActivity: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(spacing: 8) {
-                        // Dynamic Journey Progress Bar
+                        // Dynamic Journey Progress Bar (넉넉한 좌우 안전 인셋으로 모서리 곡률 잘림 방지)
                         journeyProgressBar(state: context.state)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, 10)
 
                         // Station Rows with Live Passing Location
                         stopRow(
@@ -84,9 +84,8 @@ struct BusRideLiveActivity: Widget {
                             isCurrentPhase: context.state.isOnBoard
                         )
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                    .clipShape(ContainerRelativeShape())
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
                 }
             } compactLeading: {
                 HStack(spacing: 3) {
@@ -267,7 +266,7 @@ struct BusRideLiveActivity: Widget {
 
                 // Realtime Progress Bar in Lock Screen
                 journeyProgressBar(state: state)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, 6)
 
                 Divider()
 
