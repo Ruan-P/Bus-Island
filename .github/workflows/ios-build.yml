@@ -31,6 +31,9 @@ jobs:
           test -f BusIsland/Services/Tago/TagoStationClient.swift
           test -f BusIsland/Services/Tago/TagoArrivalClient.swift
           test -f BusIsland/Services/Gbis/GbisAPIClient.swift
+          test -f BusIsland/Services/Seoul/SeoulBusModels.swift
+          test -f BusIsland/Services/Seoul/SeoulBusAPIClient.swift
+          test -f BusIsland/Services/Seoul/SeoulBusRideTracker.swift
           test -f BusIslandWidget/BusRideLiveActivity.swift
           
           if grep -nE '\?\.value\?\.' BusIsland -r --include='*.swift'; then

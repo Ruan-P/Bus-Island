@@ -72,14 +72,39 @@ actor GbisAPIClient {
     func searchRoutes(keyword: String) async throws -> [GbisRoute] {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
-        let body: GbisViaRouteListBody = try await get(
-            path: "busrouteservice/v2/getBusRouteListv2",
-            query: ["keyword": trimmed]
-        )
-        return body.busRouteList?.items.compactMap { $0.toDomain() } ?? []
+
+        async let gbisLookup: [GbisRoute] = {
+            do {
+                let body: GbisViaRouteListBody = try await self.get(
+                    path: "busrouteservice/v2/getBusRouteListv2",
+                    query: ["keyword": trimmed]
+                )
+                return body.busRouteList?.items.compactMap { $0.toDomain() } ?? []
+            } catch {
+                return []
+            }
+        }()
+
+        async let seoulLookup: [GbisRoute] = {
+            do {
+                return try await SeoulBusAPIClient.shared.searchRoutes(keyword: trimmed)
+            } catch {
+                return []
+            }
+        }()
+
+        let (gbis, seoul) = await (gbisLookup, seoulLookup)
+        var combined = gbis + seoul
+        var seen = Set<String>()
+        combined.removeAll { !seen.insert($0.routeId).inserted }
+        return combined
     }
 
     func stations(on routeId: String) async throws -> [GbisRouteStation] {
+        if routeId.hasPrefix("SEL:") {
+            return try await SeoulBusAPIClient.shared.stations(on: routeId)
+        }
+
         // 1. 메모리 캐시 확인 (7일 유효)
         if let cached = routeStationsMemoryCache[routeId],
            Date().timeIntervalSince(cached.savedAt) < 604800,
@@ -107,37 +132,71 @@ actor GbisAPIClient {
         return list
     }
 
-    // MARK: - Nearby / name (GBIS around + TAGO fallback)
+    // MARK: - Nearby / name (GBIS around + TAGO fallback + Seoul Bus)
 
     func nearbyStations(longitude: Double, latitude: Double) async throws -> [GbisStation] {
-        // 1. GBIS Around list query (Fast direct coordinate lookup)
-        do {
-            let body: GbisStationAroundListBody = try await get(
-                path: "busstationservice/v2/getBusStationAroundListv2",
-                query: [
-                    "x": String(format: "%.6f", longitude),
-                    "y": String(format: "%.6f", latitude),
-                ]
-            )
-            let items = body.busStationAroundList?.items.compactMap { $0.toDomain() } ?? []
-            if !items.isEmpty {
-                AppLog.log("GBIS nearby hit: \(items.count) stations")
-                return items.sorted { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
+        async let seoulNearby: [GbisStation] = {
+            do {
+                return try await SeoulBusAPIClient.shared.nearbyStations(longitude: longitude, latitude: latitude, radiusMeters: 600)
+            } catch {
+                return []
             }
-        } catch {
-            AppLog.log("GBIS around list query failed: \(error.localizedDescription)")
-        }
+        }()
 
-        // 2. TAGO parallel station catalog lookup
-        return try await stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
+        async let gbisNearby: [GbisStation] = {
+            // 1. GBIS Around list query (Fast direct coordinate lookup)
+            do {
+                let body: GbisStationAroundListBody = try await self.get(
+                    path: "busstationservice/v2/getBusStationAroundListv2",
+                    query: [
+                        "x": String(format: "%.6f", longitude),
+                        "y": String(format: "%.6f", latitude),
+                    ]
+                )
+                let items = body.busStationAroundList?.items.compactMap { $0.toDomain() } ?? []
+                if !items.isEmpty {
+                    return items
+                }
+            } catch {
+                AppLog.log("GBIS around list query failed: \(error.localizedDescription)")
+            }
+
+            // 2. TAGO parallel station catalog lookup
+            do {
+                return try await self.stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
+            } catch {
+                return []
+            }
+        }()
+
+        let (seoul, gbis) = await (seoulNearby, gbisNearby)
+        var combined = seoul + gbis
+        var seen = Set<String>()
+        combined.removeAll { !seen.insert($0.stationId).inserted }
+        combined.sort { ($0.distanceMeters ?? Int.max) < ($1.distanceMeters ?? Int.max) }
+
+        if combined.isEmpty {
+            throw GbisAPIError.emptyResult
+        }
+        return combined
     }
 
     func searchStationsByName(keyword: String) async throws -> [GbisStation] {
-        try await stationCatalog.searchStations(keyword: keyword)
+        async let tagoSearch = (try? await stationCatalog.searchStations(keyword: keyword)) ?? []
+        async let seoulSearch = (try? await SeoulBusAPIClient.shared.searchStationsByName(keyword: keyword)) ?? []
+        let (tago, seoul) = await (tagoSearch, seoulSearch)
+        var combined = seoul + tago
+        var seen = Set<String>()
+        combined.removeAll { !seen.insert($0.stationId).inserted }
+        return combined
     }
 
     /// Routes currently arriving at a station (arrival list).
     func routes(at stationId: String) async throws -> [GbisRoute] {
+        if stationId.hasPrefix("SEL:") {
+            return try await SeoulBusAPIClient.shared.routes(at: stationId)
+        }
+
         AppLog.log("routes(at:) stationId=\(stationId)")
         do {
             let body: GbisArrivalItemBody = try await get(
@@ -180,6 +239,10 @@ actor GbisAPIClient {
         stationId: String,
         cityCode: Int? = nil
     ) async -> Int? {
+        if routeId.hasPrefix("SEL:") {
+            return await SeoulBusAPIClient.shared.remainingStops(routeId: routeId, stationId: stationId).remainingStops
+        }
+
         do {
             let body: GbisArrivalItemBody = try await get(
                 path: "busarrivalservice/v2/getBusArrivalItemv2",

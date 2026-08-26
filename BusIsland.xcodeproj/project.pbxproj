@@ -36,6 +36,9 @@
 		AA0000000000000000000027 /* StopPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000028 /* StopPickerView.swift */; };
 		AA0000000000000000000028 /* RideNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000029 /* RideNotificationService.swift */; };
 		AA0000000000000000000029 /* RideSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000030 /* RideSessionStore.swift */; };
+		AA0000000000000000000041 /* SeoulBusModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000041 /* SeoulBusModels.swift */; };
+		AA0000000000000000000042 /* SeoulBusAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000042 /* SeoulBusAPIClient.swift */; };
+		AA0000000000000000000043 /* SeoulBusRideTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000043 /* SeoulBusRideTracker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -93,6 +96,9 @@
 		AB0000000000000000000028 /* StopPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopPickerView.swift; sourceTree = "<group>"; };
 		AB0000000000000000000029 /* RideNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideNotificationService.swift; sourceTree = "<group>"; };
 		AB0000000000000000000030 /* RideSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSessionStore.swift; sourceTree = "<group>"; };
+		AB0000000000000000000041 /* SeoulBusModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeoulBusModels.swift; sourceTree = "<group>"; };
+		AB0000000000000000000042 /* SeoulBusAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeoulBusAPIClient.swift; sourceTree = "<group>"; };
+		AB0000000000000000000043 /* SeoulBusRideTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeoulBusRideTracker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -181,6 +187,7 @@
 				AB0000000000000000000030 /* RideSessionStore.swift */,
 				B10000000000000000000008 /* Gbis */,
 				B10000000000000000000009 /* Tago */,
+				B10000000000000000000010 /* Seoul */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -202,6 +209,16 @@
 				AB0000000000000000000025 /* TagoArrivalClient.swift */,
 			);
 			path = Tago;
+			sourceTree = "<group>";
+		};
+		B10000000000000000000010 /* Seoul */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000041 /* SeoulBusModels.swift */,
+				AB0000000000000000000042 /* SeoulBusAPIClient.swift */,
+				AB0000000000000000000043 /* SeoulBusRideTracker.swift */,
+			);
+			path = Seoul;
 			sourceTree = "<group>";
 		};
 		B10000000000000000000007 /* Models */ = {
@@ -332,6 +349,9 @@
 				AA0000000000000000000016 /* GbisModels.swift in Sources */,
 				AA0000000000000000000017 /* GbisAPIClient.swift in Sources */,
 				AA0000000000000000000018 /* GbisRideTracker.swift in Sources */,
+				AA0000000000000000000041 /* SeoulBusModels.swift in Sources */,
+				AA0000000000000000000042 /* SeoulBusAPIClient.swift in Sources */,
+				AA0000000000000000000043 /* SeoulBusRideTracker.swift in Sources */,
 				AA0000000000000000000006 /* BusRideActivityAttributes.swift in Sources */,
 				AA0000000000000000000007 /* BusRideSnapshot.swift in Sources */,
 			);
