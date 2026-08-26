@@ -13,7 +13,7 @@ struct SeoulBusResponseHeader: Decodable, Sendable {
     }
 }
 
-struct SeoulBusResponseBody<T: Decodable>: Decodable {
+struct SeoulBusResponseBody<T: Decodable & Sendable>: Decodable, Sendable {
     let itemList: FlexibleArray<T>?
 
     var items: [T] {
@@ -21,7 +21,7 @@ struct SeoulBusResponseBody<T: Decodable>: Decodable {
     }
 }
 
-struct SeoulBusEnvelope<T: Decodable>: Decodable {
+struct SeoulBusEnvelope<T: Decodable & Sendable>: Decodable, Sendable {
     let msgHeader: SeoulBusResponseHeader?
     let msgBody: SeoulBusResponseBody<T>?
 }

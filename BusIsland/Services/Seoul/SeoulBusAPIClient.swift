@@ -132,7 +132,7 @@ actor SeoulBusAPIClient {
 
     // MARK: - Private HTTP Request helper
 
-    private func get<T: Decodable>(
+    private func get<T: Decodable & Sendable>(
         path: String,
         query: [String: String],
         timeout: TimeInterval = 10

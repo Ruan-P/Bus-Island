@@ -300,11 +300,11 @@ actor GbisAPIClient {
 
     // MARK: - HTTP (data.go.kr)
 
-    private func get<Body: Decodable>(
+    private func get<Body: Decodable & Sendable>(
         path: String,
         query: [String: String],
         timeout: TimeInterval = 10,
-        maxAttempts: Int = 2
+        maxAttempts: Int = 1
     ) async throws -> Body {
         guard let serviceKey = keyStore.serviceKey, !serviceKey.isEmpty else {
             throw GbisAPIError.missingServiceKey
