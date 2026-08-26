@@ -73,31 +73,34 @@ actor GbisAPIClient {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        async let gbisLookup: [GbisRoute] = {
-            do {
-                let body: GbisViaRouteListBody = try await self.get(
-                    path: "busrouteservice/v2/getBusRouteListv2",
-                    query: ["keyword": trimmed]
-                )
-                return body.busRouteList?.items.compactMap { $0.toDomain() } ?? []
-            } catch {
-                return []
-            }
-        }()
-
-        async let seoulLookup: [GbisRoute] = {
-            do {
-                return try await SeoulBusAPIClient.shared.searchRoutes(keyword: trimmed)
-            } catch {
-                return []
-            }
-        }()
+        async let gbisLookup = fetchGbisRoutes(keyword: trimmed)
+        async let seoulLookup = fetchSeoulRoutes(keyword: trimmed)
 
         let (gbis, seoul) = await (gbisLookup, seoulLookup)
         var combined = gbis + seoul
         var seen = Set<String>()
         combined.removeAll { !seen.insert($0.routeId).inserted }
         return combined
+    }
+
+    private func fetchGbisRoutes(keyword: String) async -> [GbisRoute] {
+        do {
+            let body: GbisViaRouteListBody = try await get(
+                path: "busrouteservice/v2/getBusRouteListv2",
+                query: ["keyword": keyword]
+            )
+            return body.busRouteList?.items.compactMap { $0.toDomain() } ?? []
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchSeoulRoutes(keyword: String) async -> [GbisRoute] {
+        do {
+            return try await SeoulBusAPIClient.shared.searchRoutes(keyword: keyword)
+        } catch {
+            return []
+        }
     }
 
     func stations(on routeId: String) async throws -> [GbisRouteStation] {
@@ -135,39 +138,8 @@ actor GbisAPIClient {
     // MARK: - Nearby / name (GBIS around + TAGO fallback + Seoul Bus)
 
     func nearbyStations(longitude: Double, latitude: Double) async throws -> [GbisStation] {
-        async let seoulNearby: [GbisStation] = {
-            do {
-                return try await SeoulBusAPIClient.shared.nearbyStations(longitude: longitude, latitude: latitude, radiusMeters: 600)
-            } catch {
-                return []
-            }
-        }()
-
-        async let gbisNearby: [GbisStation] = {
-            // 1. GBIS Around list query (Fast direct coordinate lookup)
-            do {
-                let body: GbisStationAroundListBody = try await self.get(
-                    path: "busstationservice/v2/getBusStationAroundListv2",
-                    query: [
-                        "x": String(format: "%.6f", longitude),
-                        "y": String(format: "%.6f", latitude),
-                    ]
-                )
-                let items = body.busStationAroundList?.items.compactMap { $0.toDomain() } ?? []
-                if !items.isEmpty {
-                    return items
-                }
-            } catch {
-                AppLog.log("GBIS around list query failed: \(error.localizedDescription)")
-            }
-
-            // 2. TAGO parallel station catalog lookup
-            do {
-                return try await self.stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
-            } catch {
-                return []
-            }
-        }()
+        async let seoulNearby = fetchSeoulNearby(longitude: longitude, latitude: latitude)
+        async let gbisNearby = fetchGbisNearby(longitude: longitude, latitude: latitude)
 
         let (seoul, gbis) = await (seoulNearby, gbisNearby)
         var combined = seoul + gbis
@@ -179,6 +151,40 @@ actor GbisAPIClient {
             throw GbisAPIError.emptyResult
         }
         return combined
+    }
+
+    private func fetchSeoulNearby(longitude: Double, latitude: Double) async -> [GbisStation] {
+        do {
+            return try await SeoulBusAPIClient.shared.nearbyStations(longitude: longitude, latitude: latitude, radiusMeters: 600)
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchGbisNearby(longitude: Double, latitude: Double) async -> [GbisStation] {
+        // 1. GBIS Around list query (Fast direct coordinate lookup)
+        do {
+            let body: GbisStationAroundListBody = try await get(
+                path: "busstationservice/v2/getBusStationAroundListv2",
+                query: [
+                    "x": String(format: "%.6f", longitude),
+                    "y": String(format: "%.6f", latitude),
+                ]
+            )
+            let items = body.busStationAroundList?.items.compactMap { $0.toDomain() } ?? []
+            if !items.isEmpty {
+                return items
+            }
+        } catch {
+            AppLog.log("GBIS around list query failed: \(error.localizedDescription)")
+        }
+
+        // 2. TAGO parallel station catalog lookup
+        do {
+            return try await stationCatalog.nearbyStations(longitude: longitude, latitude: latitude)
+        } catch {
+            return []
+        }
     }
 
     func searchStationsByName(keyword: String) async throws -> [GbisStation] {

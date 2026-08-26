@@ -210,7 +210,7 @@ struct GbisRideSelection: Hashable, Sendable, Codable {
 
 // MARK: - Flexible decoding helpers
 
-struct FlexibleArray<Element: Decodable>: Decodable {
+struct FlexibleArray<Element: Decodable & Sendable>: Decodable, Sendable {
     let items: [Element]
 
     init(from decoder: Decoder) throws {
@@ -248,16 +248,16 @@ struct LosslessStringCodable: Decodable, Sendable {
 
 // MARK: - API DTOs
 
-struct GbisEnvelope<Body: Decodable>: Decodable {
+struct GbisEnvelope<Body: Decodable & Sendable>: Decodable, Sendable {
     let response: GbisResponse<Body>
 }
 
-struct GbisResponse<Body: Decodable>: Decodable {
+struct GbisResponse<Body: Decodable & Sendable>: Decodable, Sendable {
     let msgHeader: GbisMsgHeader?
     let msgBody: Body?
 }
 
-struct GbisMsgHeader: Decodable {
+struct GbisMsgHeader: Decodable, Sendable {
     let resultCode: LosslessStringCodable?
     let resultMessage: String?
 
@@ -267,11 +267,11 @@ struct GbisMsgHeader: Decodable {
     }
 }
 
-struct GbisViaRouteListBody: Decodable {
+struct GbisViaRouteListBody: Decodable, Sendable {
     let busRouteList: FlexibleArray<GbisRouteDTO>?
 }
 
-struct GbisRouteDTO: Decodable {
+struct GbisRouteDTO: Decodable, Sendable {
     let routeId: LosslessStringCodable?
     let routeName: String?
     let routeTypeName: String?
@@ -297,11 +297,11 @@ struct GbisRouteDTO: Decodable {
     }
 }
 
-struct GbisRouteStationListBody: Decodable {
+struct GbisRouteStationListBody: Decodable, Sendable {
     let busRouteStationList: FlexibleArray<GbisRouteStationDTO>?
 }
 
-struct GbisRouteStationDTO: Decodable {
+struct GbisRouteStationDTO: Decodable, Sendable {
     let stationId: LosslessStringCodable?
     let stationName: String?
     let stationSeq: LosslessStringCodable?
@@ -327,11 +327,11 @@ struct GbisRouteStationDTO: Decodable {
     }
 }
 
-struct GbisStationAroundListBody: Decodable {
+struct GbisStationAroundListBody: Decodable, Sendable {
     let busStationAroundList: FlexibleArray<GbisStationAroundDTO>?
 }
 
-struct GbisStationAroundDTO: Decodable {
+struct GbisStationAroundDTO: Decodable, Sendable {
     let stationId: LosslessStringCodable?
     let stationName: String?
     let mobileNo: LosslessStringCodable?
@@ -356,12 +356,12 @@ struct GbisStationAroundDTO: Decodable {
     }
 }
 
-struct GbisArrivalItemBody: Decodable {
+struct GbisArrivalItemBody: Decodable, Sendable {
     let busArrivalItem: GbisArrivalDTO?
     let busArrivalList: FlexibleArray<GbisArrivalDTO>?
 }
 
-struct GbisArrivalDTO: Decodable {
+struct GbisArrivalDTO: Decodable, Sendable {
     let locationNo1: LosslessStringCodable?
     let predictTime1: LosslessStringCodable?
     let plateNo1: LosslessStringCodable?
