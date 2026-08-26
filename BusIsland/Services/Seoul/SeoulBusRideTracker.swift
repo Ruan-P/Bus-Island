@@ -2,34 +2,34 @@ import Foundation
 
 /// Tracks a selected Seoul Bus ride and produces `BusRideSnapshot` updates for Live Activity.
 @MainActor
-public final class SeoulBusRideTracker {
+final class SeoulBusRideTracker {
     private let client: SeoulBusAPIClient
     private var pollTask: Task<Void, Never>?
 
-    public private(set) var selection: GbisRideSelection?
-    public private(set) var latestSnapshot: BusRideSnapshot?
-    public private(set) var isOnBoardConfirmed = false
-    public private(set) var hasArrived = false
-    public private(set) var lastBoardingRemaining: Int?
-    public private(set) var lastAlightingRemaining: Int?
-    public private(set) var didFireBoardingSoon = false
-    public private(set) var didFireAlightSoon = false
+    private(set) var selection: GbisRideSelection?
+    private(set) var latestSnapshot: BusRideSnapshot?
+    private(set) var isOnBoardConfirmed = false
+    private(set) var hasArrived = false
+    private(set) var lastBoardingRemaining: Int?
+    private(set) var lastAlightingRemaining: Int?
+    private(set) var didFireBoardingSoon = false
+    private(set) var didFireAlightSoon = false
 
     private var pendingEvent: RidePhaseEvent?
 
-    public init(client: SeoulBusAPIClient? = nil) {
+    init(client: SeoulBusAPIClient? = nil) {
         self.client = client ?? SeoulBusAPIClient.shared
     }
 
-    public var isTracking: Bool { pollTask != nil }
+    var isTracking: Bool { pollTask != nil }
 
-    public func consumePhaseEvent() -> RidePhaseEvent? {
+    func consumePhaseEvent() -> RidePhaseEvent? {
         let event = pendingEvent
         pendingEvent = nil
         return event
     }
 
-    public func makeInitialSnapshot(from selection: GbisRideSelection) async throws -> BusRideSnapshot {
+    func makeInitialSnapshot(from selection: GbisRideSelection) async throws -> BusRideSnapshot {
         self.selection = selection
         isOnBoardConfirmed = false
         hasArrived = false
@@ -41,7 +41,7 @@ public final class SeoulBusRideTracker {
         return try await refreshSnapshot()
     }
 
-    public func refreshSnapshot() async throws -> BusRideSnapshot {
+    func refreshSnapshot() async throws -> BusRideSnapshot {
         guard let selection else {
             throw GbisAPIError.emptyResult
         }
@@ -125,13 +125,13 @@ public final class SeoulBusRideTracker {
         return snapshot
     }
 
-    public func confirmBoarding() async throws -> BusRideSnapshot {
+    func confirmBoarding() async throws -> BusRideSnapshot {
         isOnBoardConfirmed = true
         pendingEvent = .boarded
         return try await refreshSnapshot()
     }
 
-    public func startLivePolling(
+    func startLivePolling(
         intervalSeconds: TimeInterval = 20,
         onUpdate: @escaping (BusRideSnapshot) async -> Void
     ) {
@@ -150,7 +150,7 @@ public final class SeoulBusRideTracker {
         }
     }
 
-    public func stopLivePolling() {
+    func stopLivePolling() {
         pollTask?.cancel()
         pollTask = nil
     }

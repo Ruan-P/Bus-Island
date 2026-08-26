@@ -3,41 +3,41 @@ import Foundation
 
 // MARK: - Seoul Bus API Response DTOs (JSON / XML)
 
-public struct SeoulBusResponseHeader: Decodable, Sendable {
-    public let headerCd: String?
-    public let headerMsg: String?
-    public let itemCount: Int?
+struct SeoulBusResponseHeader: Decodable, Sendable {
+    let headerCd: String?
+    let headerMsg: String?
+    let itemCount: Int?
 
-    public var isSuccess: Bool {
+    var isSuccess: Bool {
         headerCd == "0" || headerCd == "00" || headerCd == nil
     }
 }
 
-public struct SeoulBusResponseBody<T: Decodable>: Decodable {
-    public let itemList: FlexibleArray<T>?
+struct SeoulBusResponseBody<T: Decodable>: Decodable {
+    let itemList: FlexibleArray<T>?
 
-    public var items: [T] {
+    var items: [T] {
         itemList?.items ?? []
     }
 }
 
-public struct SeoulBusEnvelope<T: Decodable>: Decodable {
-    public let msgHeader: SeoulBusResponseHeader?
-    public let msgBody: SeoulBusResponseBody<T>?
+struct SeoulBusEnvelope<T: Decodable>: Decodable {
+    let msgHeader: SeoulBusResponseHeader?
+    let msgBody: SeoulBusResponseBody<T>?
 }
 
 // MARK: - Station DTO
 
-public struct SeoulStationDTO: Decodable, Sendable {
-    public let stId: String?
-    public let stNm: String?
-    public let arsId: String?
-    public let tmX: String?
-    public let tmY: String?
-    public let posX: String?
-    public let posY: String?
+struct SeoulStationDTO: Decodable, Sendable {
+    let stId: String?
+    let stNm: String?
+    let arsId: String?
+    let tmX: String?
+    let tmY: String?
+    let posX: String?
+    let posY: String?
 
-    public func toDomain() -> GbisStation? {
+    func toDomain() -> GbisStation? {
         guard let stId, !stId.isEmpty, let stNm, !stNm.isEmpty else { return nil }
         let lat = Double(posY ?? tmY ?? "")
         let lon = Double(posX ?? tmX ?? "")
@@ -55,14 +55,14 @@ public struct SeoulStationDTO: Decodable, Sendable {
 
 // MARK: - Route DTO
 
-public struct SeoulRouteDTO: Decodable, Sendable {
-    public let busRouteId: String?
-    public let busRouteNm: String?
-    public let routeType: String?
-    public let stStationNm: String?
-    public let edStationNm: String?
+struct SeoulRouteDTO: Decodable, Sendable {
+    let busRouteId: String?
+    let busRouteNm: String?
+    let routeType: String?
+    let stStationNm: String?
+    let edStationNm: String?
 
-    public var routeTypeName: String {
+    var routeTypeName: String {
         switch routeType {
         case "1": return "공항버스"
         case "2": return "마을버스"
@@ -78,7 +78,7 @@ public struct SeoulRouteDTO: Decodable, Sendable {
         }
     }
 
-    public func toDomain() -> GbisRoute? {
+    func toDomain() -> GbisRoute? {
         guard let busRouteId, !busRouteId.isEmpty, let busRouteNm, !busRouteNm.isEmpty else { return nil }
         return GbisRoute(
             routeId: "SEL:\(busRouteId)",
@@ -94,20 +94,20 @@ public struct SeoulRouteDTO: Decodable, Sendable {
 
 // MARK: - Station Route with Arrival DTO
 
-public struct SeoulStationRouteDTO: Decodable, Sendable {
-    public let busRouteId: String?
-    public let busRouteNm: String?
-    public let busRouteType: String?
-    public let arrmsg1: String?
-    public let arrmsg2: String?
-    public let traTime1: String?
-    public let traTime2: String?
-    public let vehId1: String?
-    public let plainNo1: String?
-    public let vehId2: String?
-    public let plainNo2: String?
+struct SeoulStationRouteDTO: Decodable, Sendable {
+    let busRouteId: String?
+    let busRouteNm: String?
+    let busRouteType: String?
+    let arrmsg1: String?
+    let arrmsg2: String?
+    let traTime1: String?
+    let traTime2: String?
+    let vehId1: String?
+    let plainNo1: String?
+    let vehId2: String?
+    let plainNo2: String?
 
-    public func toDomain() -> GbisRoute? {
+    func toDomain() -> GbisRoute? {
         guard let busRouteId, !busRouteId.isEmpty, let busRouteNm, !busRouteNm.isEmpty else { return nil }
 
         let parsed1 = SeoulBusArrivalParser.parse(arrmsg: arrmsg1, traTime: traTime1)
@@ -149,18 +149,18 @@ public struct SeoulStationRouteDTO: Decodable, Sendable {
 
 // MARK: - Route Station (경유 정류소) DTO
 
-public struct SeoulRouteStationDTO: Decodable, Sendable {
-    public let busRouteId: String?
-    public let seq: String?
-    public let section: String?
-    public let station: String?
-    public let stationNm: String?
-    public let stationNo: String?
-    public let arsId: String?
-    public let posX: String?
-    public let posY: String?
+struct SeoulRouteStationDTO: Decodable, Sendable {
+    let busRouteId: String?
+    let seq: String?
+    let section: String?
+    let station: String?
+    let stationNm: String?
+    let stationNo: String?
+    let arsId: String?
+    let posX: String?
+    let posY: String?
 
-    public func toDomain() -> GbisRouteStation? {
+    func toDomain() -> GbisRouteStation? {
         guard let station, !station.isEmpty, let stationNm, !stationNm.isEmpty,
               let seqInt = Int(seq ?? "0"), seqInt > 0 else { return nil }
         let lat = Double(posY ?? "")
@@ -180,9 +180,9 @@ public struct SeoulRouteStationDTO: Decodable, Sendable {
 
 // MARK: - Arrival Parsing Utility
 
-public enum SeoulBusArrivalParser {
+enum SeoulBusArrivalParser {
     /// 서울 버스 도착 메시지 `arrmsg1` (예: `3분20초후[2번째 전]`, `곧 도착`, `운행종료`, `출발대기`) 파싱
-    public static func parse(arrmsg: String?, traTime: String?) -> (remainingStops: Int?, predictMinutes: Int?) {
+    static func parse(arrmsg: String?, traTime: String?) -> (remainingStops: Int?, predictMinutes: Int?) {
         guard let arrmsg, !arrmsg.isEmpty else {
             return (nil, nil)
         }

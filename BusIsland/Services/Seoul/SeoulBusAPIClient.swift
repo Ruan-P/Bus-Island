@@ -2,8 +2,8 @@ import CoreLocation
 import Foundation
 
 /// Seoul City Bus Open API Client (ws.bus.go.kr)
-public actor SeoulBusAPIClient {
-    public static let shared = SeoulBusAPIClient()
+actor SeoulBusAPIClient {
+    static let shared = SeoulBusAPIClient()
 
     private let baseURL = URL(string: "https://ws.bus.go.kr/api/rest")!
     private let session: URLSession
@@ -12,14 +12,14 @@ public actor SeoulBusAPIClient {
     private var routeStationsMemoryCache: [String: (savedAt: Date, stations: [GbisRouteStation])] = [:]
     private let routeStationsDiskCacheFileName = "seoul_route_stations_cache_v1.json"
 
-    public init(session: URLSession = .shared, keyStore: APIKeyStore? = nil) {
+    init(session: URLSession = .shared, keyStore: APIKeyStore? = nil) {
         self.session = session
         self.keyStore = keyStore ?? APIKeyStore.shared
     }
 
     // MARK: - Search Routes
 
-    public func searchRoutes(keyword: String) async throws -> [GbisRoute] {
+    func searchRoutes(keyword: String) async throws -> [GbisRoute] {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
@@ -32,7 +32,7 @@ public actor SeoulBusAPIClient {
 
     // MARK: - Search Stations
 
-    public func searchStationsByName(keyword: String) async throws -> [GbisStation] {
+    func searchStationsByName(keyword: String) async throws -> [GbisStation] {
         let trimmed = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
@@ -45,7 +45,7 @@ public actor SeoulBusAPIClient {
 
     // MARK: - Nearby Stations (by Position)
 
-    public func nearbyStations(longitude: Double, latitude: Double, radiusMeters: Int = 500) async throws -> [GbisStation] {
+    func nearbyStations(longitude: Double, latitude: Double, radiusMeters: Int = 500) async throws -> [GbisStation] {
         let env: SeoulBusEnvelope<SeoulStationDTO> = try await get(
             path: "stationinfo/getStationByPos",
             query: [
@@ -60,7 +60,7 @@ public actor SeoulBusAPIClient {
 
     // MARK: - Routes at Station (with Realtime Arrival)
 
-    public func routes(at stationId: String, arsId: String? = nil) async throws -> [GbisRoute] {
+    func routes(at stationId: String, arsId: String? = nil) async throws -> [GbisRoute] {
         // 서울 정류소 ID(stId) 또는 정류소 고유번호(arsId)
         let rawId = stationId.replacingOccurrences(of: "SEL:", with: "")
         let targetArs = (arsId != nil && !arsId!.isEmpty && arsId != "0") ? arsId! : rawId
@@ -75,7 +75,7 @@ public actor SeoulBusAPIClient {
 
     // MARK: - Route Stations (Stations on Route)
 
-    public func stations(on routeId: String) async throws -> [GbisRouteStation] {
+    func stations(on routeId: String) async throws -> [GbisRouteStation] {
         let cleanRouteId = routeId.replacingOccurrences(of: "SEL:", with: "")
 
         if let cached = routeStationsMemoryCache[cleanRouteId],
@@ -99,7 +99,7 @@ public actor SeoulBusAPIClient {
 
     // MARK: - Remaining Stops (Realtime Single Route/Station)
 
-    public func remainingStops(
+    func remainingStops(
         routeId: String,
         stationId: String,
         stationSeq: Int? = nil
