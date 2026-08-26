@@ -106,20 +106,15 @@ final class SeoulBusRideTracker {
             }
         }
 
-        let totalJourneyStops = max(1, seqDiff)
-        let completedStops = totalJourneyStops - alightingStops
-        let progress = isOnBoardConfirmed ? min(1.0, max(0.0, Double(completedStops) / Double(totalJourneyStops))) : 0.0
-
         let snapshot = BusRideSnapshot(
+            id: selection.rideID,
             routeNumber: selection.route.routeName,
             boarding: selection.boardingStation.stationName,
             destination: selection.destination.stationName,
-            remainingStops: max(0, alightingStops),
+            currentStation: currentStationName,
             boardingRemainingStops: max(0, boardingStops),
-            totalJourneyStops: totalJourneyStops,
-            progress: progress,
-            isOnBoard: isOnBoardConfirmed,
-            currentStation: currentStationName
+            remainingStops: max(0, alightingStops),
+            totalRideStops: seqDiff
         )
         latestSnapshot = snapshot
         return snapshot
