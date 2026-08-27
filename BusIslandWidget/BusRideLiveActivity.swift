@@ -14,14 +14,19 @@ struct BusRideLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: BusRideActivityAttributes.self) { context in
             lockScreenCard(state: context.state)
+                .activityBackgroundTint(nil)
+                .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             DynamicIsland {
                 // MARK: - Expanded UI
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 7) {
                         Image(systemName: "bus.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(RideTheme.primary)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(6)
+                            .background(RideTheme.primary, in: Circle())
+                            .shadow(color: RideTheme.primary.opacity(0.5), radius: 3)
 
                         VStack(alignment: .leading, spacing: 1) {
                             Text(context.state.routeNumber)
@@ -127,6 +132,7 @@ struct BusRideLiveActivity: Widget {
             Circle()
                 .fill(RideTheme.boarding)
                 .frame(width: 6, height: 6)
+                .shadow(color: RideTheme.boarding.opacity(0.8), radius: 3)
 
             GeometryReader { geo in
                 let totalWidth = geo.size.width
@@ -151,11 +157,13 @@ struct BusRideLiveActivity: Widget {
                             )
                         )
                         .frame(width: activeWidth, height: 4)
+                        .shadow(color: (state.isOnBoard ? RideTheme.accent : RideTheme.boarding).opacity(0.5), radius: 3)
 
                     // Moving Bus Indicator Head
                     Circle()
                         .fill(Color.white)
                         .frame(width: 9, height: 9)
+                        .shadow(color: Color.black.opacity(0.6), radius: 2, x: 0, y: 1)
                         .offset(x: max(0, activeWidth - 4.5))
                 }
                 .frame(maxHeight: .infinity, alignment: .center)
@@ -165,6 +173,7 @@ struct BusRideLiveActivity: Widget {
             Circle()
                 .fill(RideTheme.destination)
                 .frame(width: 6, height: 6)
+                .shadow(color: RideTheme.destination.opacity(0.8), radius: 3)
         }
     }
 
@@ -216,88 +225,99 @@ struct BusRideLiveActivity: Widget {
         }
     }
 
-    // MARK: - Lock Screen Card UI (iOS 26 Liquid Glass)
+    // MARK: - Lock Screen Card UI (Pure Translucent Native Glass)
     @ViewBuilder
     private func lockScreenCard(state: BusRideActivityAttributes.ContentState) -> some View {
-        GlassEffectContainer {
-            VStack(spacing: 12) {
-                // Header Row: Bus Badge + Active Tracking Phase & Scoreboard Countdown
-                HStack(alignment: .center) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "bus.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.primary)
-                            .padding(7)
-                            .rideLiquidGlass(in: Circle(), tint: RideTheme.primary.opacity(0.35))
+        VStack(spacing: 12) {
+            // Header Row: Bus Badge + Active Tracking Phase & Scoreboard Countdown
+            HStack(alignment: .center) {
+                HStack(spacing: 8) {
+                    Image(systemName: "bus.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(7)
+                        .background(RideTheme.primary, in: Circle())
+                        .shadow(color: RideTheme.primary.opacity(0.6), radius: 4)
 
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(state.routeNumber)
-                                .font(.system(size: 20, weight: .heavy, design: .rounded))
-                                .foregroundStyle(.primary)
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(state.isOnBoard ? RideTheme.liveGreen : RideTheme.boarding)
-                                    .frame(width: 6, height: 6)
-                                Text(state.isOnBoard ? "하차지 이동 중 · LIVE" : "승차 대기 중 · LIVE")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(state.isOnBoard ? RideTheme.liveGreen : RideTheme.boarding)
-                            }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(state.routeNumber)
+                            .font(.system(size: 20, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(state.isOnBoard ? RideTheme.liveGreen : RideTheme.boarding)
+                                .frame(width: 6, height: 6)
+                                .shadow(color: (state.isOnBoard ? RideTheme.liveGreen : RideTheme.boarding).opacity(0.8), radius: 3)
+                            Text(state.isOnBoard ? "하차지 이동 중 · LIVE" : "승차 대기 중 · LIVE")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(state.isOnBoard ? RideTheme.liveGreen : RideTheme.boarding)
                         }
-                    }
-
-                    Spacer()
-
-                    // Large Vivid Scoreboard Countdown
-                    VStack(alignment: .trailing, spacing: 0) {
-                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text("\(state.activeRemainingStops)")
-                                .font(.system(size: 28, weight: .black, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(activeCountColor(for: state))
-                            Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
-                                .font(.system(size: 12, weight: .heavy))
-                                .foregroundStyle(.secondary)
-                        }
-                        Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                     }
                 }
 
-                // Realtime Progress Bar in Lock Screen
-                journeyProgressBar(state: state)
-                    .padding(.horizontal, 6)
+                Spacer()
 
-                Divider()
-
-                // Station rows: 승차 / 하차
-                VStack(spacing: 7) {
-                    lockScreenStopRow(
-                        role: "승차",
-                        name: state.boarding,
-                        count: state.boardingRemainingStops,
-                        currentLocation: !state.isOnBoard ? state.currentStation : nil,
-                        color: RideTheme.boarding,
-                        isCurrentPhase: !state.isOnBoard
-                    )
-
-                    lockScreenStopRow(
-                        role: "하차",
-                        name: state.destination,
-                        count: state.remainingStops,
-                        currentLocation: state.isOnBoard ? state.currentStation : nil,
-                        color: RideTheme.accent,
-                        isCurrentPhase: state.isOnBoard
-                    )
+                // Large Vivid Scoreboard Countdown
+                VStack(alignment: .trailing, spacing: 0) {
+                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                        Text("\(state.activeRemainingStops)")
+                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(activeCountColor(for: state))
+                        Text(state.isOnBoard ? "정거장 남음" : "정거장 전")
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundStyle(.white.opacity(0.90))
+                    }
+                    Text(state.isOnBoard ? "목표 하차지까지" : "승차 정류소까지")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(state.isOnBoard ? RideTheme.accent : RideTheme.boarding)
                 }
             }
-            .padding(16)
+
+            // Realtime Progress Bar in Lock Screen
+            journeyProgressBar(state: state)
+                .padding(.horizontal, 2)
+
+            Divider()
+                .overlay(Color.white.opacity(0.18))
+
+            // Station rows: 승차 / 하차
+            VStack(spacing: 7) {
+                lockScreenStopRow(
+                    role: "승차",
+                    name: state.boarding,
+                    count: state.boardingRemainingStops,
+                    currentLocation: !state.isOnBoard ? state.currentStation : nil,
+                    color: RideTheme.boarding,
+                    isCurrentPhase: !state.isOnBoard
+                )
+
+                lockScreenStopRow(
+                    role: "하차",
+                    name: state.destination,
+                    count: state.remainingStops,
+                    currentLocation: state.isOnBoard ? state.currentStation : nil,
+                    color: RideTheme.accent,
+                    isCurrentPhase: state.isOnBoard
+                )
+            }
         }
-        .activityBackgroundTint(.clear)
-        .activitySystemActionForegroundColor(.white)
+        .padding(16)
+        .overlay(
+            // Specular Edge Highlight Border (맑은 유리 테두리 반사광)
+            ContainerRelativeShape()
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.40), Color.white.opacity(0.08), Color.white.opacity(0.20)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
     }
 
-    // MARK: - Lock Screen Stop Row (Liquid Glass badge)
+    // MARK: - Lock Screen Stop Row
     @ViewBuilder
     private func lockScreenStopRow(
         role: String,
@@ -313,12 +333,16 @@ struct BusRideLiveActivity: Widget {
                 .foregroundStyle(color)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .rideLiquidGlass(in: .rect(cornerRadius: 6, style: .continuous), tint: color.opacity(0.3))
+                .background(color.opacity(0.20), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .stroke(color.opacity(0.40), lineWidth: 0.75)
+                )
 
             VStack(alignment: .leading, spacing: 1.5) {
                 Text(name.isEmpty ? "-" : name)
                     .font(.system(size: 14, weight: isCurrentPhase ? .heavy : .semibold))
-                    .foregroundStyle(isCurrentPhase ? .primary : .secondary)
+                    .foregroundStyle(isCurrentPhase ? Color.white : Color.white.opacity(0.60))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -339,10 +363,10 @@ struct BusRideLiveActivity: Widget {
                 Text("\(count)")
                     .font(.system(size: 14, weight: .black, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isCurrentPhase ? AnyShapeStyle(color) : AnyShapeStyle(.tertiary))
+                    .foregroundStyle(isCurrentPhase ? color : Color.white.opacity(0.35))
                 Text("정거장")
                     .font(.system(size: 9.5, weight: .bold))
-                    .foregroundStyle(isCurrentPhase ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
+                    .foregroundStyle(isCurrentPhase ? Color.white.opacity(0.85) : Color.white.opacity(0.30))
             }
         }
     }
